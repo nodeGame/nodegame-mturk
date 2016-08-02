@@ -1,14 +1,12 @@
-
-
   //   $.getJSON( url, function( data ) {
   //     console.log(data);
   //   });
   // return;
-  
+
   function logResults(data) {
   console.log(data);
   }
-  
+
   $.ajax({
   type: 'GET',
   dataType: 'jsonp',
