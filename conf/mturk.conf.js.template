@@ -1,0 +1,5 @@
+module.exports =  {
+    access : 'YOUR_ACCESS_CODE',
+    secret : 'YOUR_SECRET',
+    sandbox: true
+};
