@@ -23,16 +23,16 @@ codes.index('id', function(i) { return i.id });
 program
     .version(version)
 
-// Specify a configuration file (other inline-options will be ignored).
-
+    // Specify a configuration file (other inline-options will be ignored).
     .option('-C, --config [confFile]',
-            'Specifies a configuration file to load')
+            'Specifies a configuration file')
+
+    .option('-f, --file [resultsFile]',
+            'Path to a results file')
     .option('-t, --token [token]',
             'Unique token for one-time operations')
     .option('-c, --codes [codesFile]',
             'Path to a codes file with Exit and Access Codes')
-    .option('-f, --file [resultsFile]',
-            'Path to a results file')
     .option('-q, --quiet',
             'No/minimal output printed to console')
 
@@ -51,7 +51,6 @@ logger = new winston.Logger({
 
 
 if (!program.file) {
-
     logger.error('no results file provided.');
     return;
 
@@ -119,8 +118,8 @@ mturk.createClient(config).then(function(api) {
             }
             if (code.ExitCode && (data.ExitCode !== code.ExitCode)) {
                 logger.error('ExitCodes do not match. WorkerId: ' + wid +
-                             '. ExitCode: ' + data.ExitCode ' (found) vs ' +
-                             code.ExitCode ' (expected)');
+                             '. ExitCode: ' + data.ExitCode + ' (found) vs ' +
+                             code.ExitCode + ' (expected)');
             }
         }
 
