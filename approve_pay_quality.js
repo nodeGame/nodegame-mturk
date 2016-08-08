@@ -323,9 +323,6 @@ mturk.createClient(config).then(function(api) {
 
     }
 
-    tmp = path.extname(file);
-
-
     if (validateLevel) {
         results.on('insert', function(i) {
             var str;
@@ -337,7 +334,7 @@ mturk.createClient(config).then(function(api) {
             }
             // Custom validation.
             if ('function' === typeof validateResult) {
-                str = validateResult(data);
+                str = validateResult(i);
                 if ('string' === typeof str) {
                     resultsErrors.push(str);
                     logger.error('custom validation failed: ' + tmp + '. ' +
@@ -346,14 +343,25 @@ mturk.createClient(config).then(function(api) {
                 }
             }
         });
+
+
     }
-debugger
+
     results.loadSync(file, {
         separator: ',',
         quote: '"',
         headers: true,
         // columnsFromHeader: true // ya-csv
     });
+
+    logger.info('result codes found: ' + results.size());
+
+    if (resultsErrors.length) {
+        logger.error('result codes errors: ' + resultsErrors.length);
+        logger.error('correct the errors before continuing');
+    }
+
+debugger
 
 //     if (tmp === 'csv') {
 //         reader = csv.createCsvFileReader(file, { columnsFromHeader: true });
