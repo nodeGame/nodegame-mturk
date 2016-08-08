@@ -16,11 +16,31 @@ var validateResult = shared.validateResult;
 var config, file;
 var validateLevel, uniqueToken, bonusField;
 
-var UNIQUE_TOKEN = '' + 3000;
-var DRY_RUN = false;
+var retryInterval, maxTries;
+
+retryInterval = 10000;
+maxTries = 3;
+
+var UNIQUE_TOKEN, DRY_RUN, HIT_ID;
+
+UNIQUE_TOKEN = '' + 3000;
+DRY_RUN = false;
 
 var inputCodes, results;
 results = new NDDB();
+
+results.index('id', function(i) {
+    return i.id;
+});
+results.index('ExitCode', function(i) {
+    return i.ExitCode;
+});
+results.index('AssignmentId', function(i) {
+    return i.AssignmentId;
+});
+results.index('WorkerId', function(i) {
+    return i.WorkerId;
+});
 
 var inputCodesErrors, resultsErrors;
 inputCodesErrors = [], resultsErrors = [];
@@ -50,6 +70,9 @@ program
 
     .option('-b, --bonusField [bonusField]',
             'Overwrites the name of the bonus field (default: bonus)')
+
+    .option('-s, --sandbox',
+            'Activate sandbox mode')
 
     .option('-d, --dry',
             'Dry-run: does not send requests to servers')
@@ -96,23 +119,33 @@ if ('string' !== typeof config.secret || config.secret.trim() === '') {
                  config.secret);
     return;
 }
-config.sandbox = !!config.sandbox;
+
+// Sandbox.
+config.sandbox = 'undefined' === typeof program.sandbox ?
+    !!config.sandbox : !!program.sandbox;
+
 logger.info('sandbox-mode: ' + (config.sandbox ? 'on' : '**not active**'));
 
-
-// Bonus field.
-if (program.bonusField) {
-    if ('string' !== typeof program.bonusField ||
-        program.bonusField.trim() === '') {
-
-        logger.error('bonusField is invalid. Found: ' + program.bonusField);
+// Hit Id.
+if (program.hitId || config.hitId) {
+    HIT_ID = program.hitId || config.hitId;
+    if ('string' !== typeof HIT_ID || HIT_ID.trim() === '') {
+        logger.error('hitId is invalid. Found: ' + HIT_ID);
         return;
     }
-    bonusField = program.bonusField;
+}
+
+// Bonus field.
+if (program.bonusField || config.bonusField) {
+    bonusField = program.bonusField || config.bonusField;
+    if ('string' !== typeof bonusField || bonusField.trim() === '') {
+        logger.error('bonusField is invalid. Found: ' + bonusField);
+        return;
+    }
     logger.info('custom bonus field: ' + bonusField);
 }
 
-// File.
+// Results File.
 if (!program.results) {
     logger.error('no results file provided.');
     return;
@@ -125,6 +158,31 @@ if (!fs.existsSync(file)) {
 
 }
 logger.info('results file: ' + file);
+
+// Input Codes.
+if (program.inputCodes) {
+    if (!fs.existsSync(program.inputCodes)) {
+        logger.error('input codes file not found: ' + program.inputCodes);
+        return;
+    }
+    logger.info('input codes: ' + program.inputCodes);
+    inputCodes = new NDDB();
+    inputCodes.on('insert', function(code) {
+        if (!code.id && !code.WorkerId) {
+            // Add to array, might dump to file in the future.
+            inputCodesErrors.push('missing id and WorkerId');
+            logger.error('invalid input code entry: ' + code);
+        }
+    });
+    inputCodes.index('id', function(i) { return i.id || i.WorkerId; });
+    inputCodes.loadSync(program.inputCodes);
+    logger.info('input codes: ' + inputCodes.size());
+    if (inputCodesErrors.length) {
+        logger.error('input codes errors: ' + inputCodesErrors.length);
+        logger.error('correct the errors before continuing');
+        return;
+    }
+}
 
 // Unique Token.
 uniqueToken = program.token;
@@ -141,83 +199,129 @@ validateLevel = program.validateLevel;
 logger.info('validate level: ' + validateLevel);
 
 
-// Input Codes.
-if (program.inputCodes) {
-    if (!fs.existsSync(program.inputCodes)) {
-        logger.error('input codes file not found: ' + program.inputCodes);
-        return;
+results.on('insert', function(i) {
+    var str;
+
+    // Check no duplicates.
+    if (this.id.get(i.id)) {
+        str = 'duplicate code id ' + i.id;
+        logger.error(str);
+        resultsErrors.push(str);
     }
-    inputCodes = new NDDB();
-    inputCodes.on('insert', function(code) {
-        if (!code.id && !code.WorkerId) {
-            // Add to array, might dump to file in the future.
-            inputCodesErrors.push('missing id and WorkerId');
-            logger.error('invalid input code entry: ' + code);
+    if (this.id.get(i.ExitCode)) {
+        str = 'duplicate ExitCode ' + i.ExitCode;
+        logger.error(str);
+        resultsErrors.push(str);
+    }
+    if (this.id.get(i.AssignmentId)) {
+        str = 'duplicate AssignmentId ' + i.AssignmentId;
+        logger.error(str);
+        resultsErrors.push(str);
+    }
+    if (this.id.get(i.WorkerId)) {
+        str = 'duplicate WorkerId ' + i.WorkerId;
+        logger.error(str);
+        resultsErrors.push(str);
+    }
+
+
+    if (validateLevel) {
+        // Standard validation.
+        str = HIT_ID ? validateCode(i, bonusField) :
+            validateCode(i, HIT_ID, bonusField);
+        if (str) {
+            resultsErrors.push(str);
+            logger.error(str);
         }
-    });
-    inputCodes.index('id', function(i) { return i.id || i.WorkerId; });
-    inputCodes.loadSync(program.inputCodes);
-    logger.info('inputCodes found: ' + inputCodes.size());
-    if (inputCodesErrors.length) {
-        logger.error('input codes errors found: ' + inputCodesErrors.length);
-        logger.error('correct the errors before continuing');
-        return;
+        // Custom validation.
+        else if ('function' === typeof validateResult) {
+            str = validateResult(i);
+            if ('string' === typeof str) {
+                resultsErrors.push(str);
+                logger.error(str);
+            }
+        }
     }
+
+    // We must validate WorkerId and Exit Code (if found in inputCodes db).
+    if (inputCodes) {
+        code = inputCodes.id.get(i.id);
+        if (!code) {
+            str = 'id not found in inputCodes db: ' + i.id;
+            logger.error(str);
+            resultsErrors.push(str);
+        }
+        else if (code.ExitCode && (i.ExitCode !== code.ExitCode)) {
+            str = 'ExitCodes do not match. WorkerId: ' + i.WorkerId +
+                '. ExitCode: ' + i.ExitCode + ' (found) vs ' +
+                code.ExitCode + ' (expected)'
+            logger.error(str);
+            resultsErrors.push(str);
+        }
+    }
+
+});
+
+
+// Loading results file.
+results.loadSync(file, {
+    separator: ',',
+    quote: '"',
+    headers: true
+});
+
+logger.info('result codes: ' + results.size());
+
+if (resultsErrors.length) {
+    logger.error('result codes errors: ' + resultsErrors.length);
+    logger.error('correct the errors before continuing');
+    return;
 }
 
 if (program.dry) {
     DRY_RUN = true;
+    logger.info('dry mode: **on**');
 }
 
 logger.info('creating mturk client');
 
 // Here we start!
 mturk.createClient(config).then(function(api) {
-    var params, reader, tmp;
+    var reader;
 
-    function req(name, params, then) {
+    function req(name, params) {
+        var cb, interval, nTries;
         if (DRY_RUN) return;
-        if (then) {
-            api.req(name, params).then(then).catch(function(err) {
-                logger.error(err);
-                // If a token is set try to repeat operation with timeout.
-                // if (params.)
-            });
-        }
-        else {
-            api.req(name, params).catch(function(err) {
-                logger.error(err);
-            });
-        }
+
+        cb = function() {
+            api
+                .req(name, params)
+                .then(function() {
+                    if (interval) clearInterval(interval);
+                })
+                .catch(function(err) {
+                    logger.error(err);
+                });
+        };
+        cb();
+        nTries = 1;
+        interval = setInterval(function() {
+            if (++nTries > maxTries) {
+                logger.error('reached max number of retries. Operation: ' +
+                             name + 'WorkerId: ' + params.WorkerId);
+                clearInterval(interval);
+                return;
+            }
+            cb();
+        }, retryInterval);
     }
 
     function approveAndPay(data) {
-        var code, wid, op;
-        wid = data.WorkerId;
-        // We must validate WorkerId and Exit Code (if found in inputCodes db).
-        if (inputCodes) {
-            code = inputCodes.id.get(wid);
-            if (!code) {
-                logger.error('WorkerId not found in inputCodes db: ' + wid);
-                return;
-            }
-            if (code.ExitCode && (data.ExitCode !== code.ExitCode)) {
-                logger.error('ExitCodes do not match. WorkerId: ' + wid +
-                             '. ExitCode: ' + data.ExitCode + ' (found) vs ' +
-                             code.ExitCode + ' (expected)');
-            }
-        }
+        var code, id, wid, op, params;
 
-        // Approve or Reject.
-        if (data.Reject && data.Approve) {
-            logger.error('Approve and Reject both selected. WorkerId: ' + wid);
-            return;
-        }
-        else if (!data.Reject && !data.Approve) {
-            logger.error('Neither Approve and Reject selected. WorkerId: ' +
-                         wid);
-            return;
-        }
+        id = data.id;
+        wid = data.WorkerId;
+
         if (data.Reject) {
             if (data[bonusField]) {
                 logger.warn('Assignment rejected, but bonus found. WorkerId: ' +
@@ -231,80 +335,32 @@ mturk.createClient(config).then(function(api) {
 
         params = { AssignementId: data.AssignmentId };
 
-        // Constraints: Can be up to 1024 characters
-        // (including multi-byte characters).
-        // The RequesterFeedback parameter cannot contain ASCII
-        // characters 0-8, 11,12, or 14-31. If these characters
-        // are present, the operation throws an InvalidParameterValue error.
-        if (data.RequesterFeedback) {
-            if ('string' !== typeof data.RequesterFeedback) {
-                logger.error('Invalid RequesterFeedback: ' +
-                             data.RequesterFeedback + ' WorkerId: ' + wid);
-            }
+        if (params.RequesterFeedback) {
             params.RequesterFeedback = data.RequesterFeedback;
         }
 
         // No bonus granting if assignment is rejected.
         if (code[bonusField] && op !== 'Reject') {
-            params = {
-                WorkerId: code.WorkerId,
-                AssignmentId: code.AssignementId,
-                BonusAmount: {
-                    Amount: code[bonusField],
-                    CurrencyCode: 'USD'
-                },
-                UniqueRequestToken: that.getUniqueToken()
-            };
-            if (code.Reason) params.Reason = code.Reason;
+
 
             req(op + 'Assignment', params, function() {
-
-
+                params = {
+                    WorkerId: code.WorkerId,
+                    AssignmentId: code.AssignementId,
+                    BonusAmount: {
+                        Amount: code[bonusField],
+                        CurrencyCode: 'USD'
+                    },
+                    UniqueRequestToken: uniqueToken
+                };
+                if (code.Reason) params.Reason = code.Reason;
+                req('GrantBonus', params);
             });
         }
         else {
             req(op + 'Assignment', params);
         }
 
-    }
-
-    if (validateLevel) {
-        results.on('insert', function(i) {
-            var str;
-            // Standard validation.
-            str = validateCode(i);
-            if (str) {
-                resultsErrors.push(str);
-                return;
-            }
-            // Custom validation.
-            if ('function' === typeof validateResult) {
-                str = validateResult(i);
-                if ('string' === typeof str) {
-                    resultsErrors.push(str);
-                    logger.error('custom validation failed: ' + tmp + '. ' +
-                                 'WorkerId: ' + wid);
-                    return;
-                }
-            }
-        });
-
-
-    }
-
-    // Load files.
-    results.loadSync(file, {
-        separator: ',',
-        quote: '"',
-        headers: true
-    });
-
-    logger.info('result codes found: ' + results.size());
-
-    if (resultsErrors.length) {
-        logger.error('result codes errors: ' + resultsErrors.length);
-        logger.error('correct the errors before continuing');
-        return;
     }
 
     // Do it!
