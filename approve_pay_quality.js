@@ -1,13 +1,17 @@
+// General.
 var fs = require('fs');
 var path = require('path');
-var csv = require('ya-csv');
 var mturk = require('mturk-api');
 var _ = require('underscore');
 var program = require('commander');
 var winston = require('winston');
 var NDDB = require('NDDB').NDDB;
 
+// Local.
 var version = require('./package.json').version;
+var shared = require('./lib/shared');
+var validateCode = shared.validateCode;
+var validateResult = shared.validateResult;
 
 var config, file;
 var validateLevel, uniqueToken, bonusField;
@@ -20,67 +24,6 @@ results = new NDDB();
 
 var inputCodesErrors, resultsErrors;
 inputCodesErrors = [], resultsErrors = [];
-
-// ## Helper functions.
-
-function validateResult(result) {
-    if (result[bonusField] < 0 || result[bonusField] > 10) {
-        return 'wrong bonus: ' + result[bonusField];
-    }
-}
-
-function validateCode(code) {
-
-    if ('object' !== typeof code) {
-        return 'code must object. Found: ' + code;
-    }
-
-    if ('string' === typeof code.id) {
-        return 'code.id must be string. Found: ' + code.id;
-    }
-
-    if ('string' !== typeof code.WorkerId) {
-        return 'code.WorkerId must be string. Found: ' + code.WorkerId;
-    }
-
-    if ('string' !== typeof code.AssignmentId) {
-        return 'code.AssignmentId must be string. Found: ' +
-            code.AssignmentId + '. WorkerId: ' + code.WorkerId;
-    }
-
-    if (code.HITId) {
-        if ('string' !== typeof code.HITId) {
-            return 'code.HITId must be string or undefined. ' +
-                code.HITId + '. WorkerId: ' + code.WorkerId;
-        }
-    }
-
-    if (code[bonusField]) {
-        if ('number' !== typeof code[bonusField]) {
-            return 'code.' + bonusField + ' must be number ' +
-                'or undefined. Found ' + code[bonusField] +
-                '. WorkerId: ' + code.WorkerId;
-        }
-        if (code[bonusField] < 0) {
-            return 'code.' + bonusField + ' cannot be negative: ' +
-                code[bonusField] + '. WorkerId: ' + code.WorkerId;
-        }
-    }
-
-    if (code.Reason &&
-        ('string' !== typeof code.Reason || code.Reason.trim() === '')) {
-
-
-        return 'code.Reason must be number or undefined. ' +
-            '. Found ' + code.Reason + '. WorkerId: ' + code.WorkerId;
-    }
-
-    if (config.HITId && code.HITId !== config.HITId) {
-        return 'code.HITId does not match configuration file. ' +
-            'Expected: ' + config.HITId + '. Found: ' + code.HITid +
-            '. WorkerId: ' + code.WorkerId;
-    }
-}
 
 // Commander.
 
@@ -159,7 +102,9 @@ logger.info('sandbox-mode: ' + (config.sandbox ? 'on' : '**not active**'));
 
 // Bonus field.
 if (program.bonusField) {
-    if ('string' !== program.bonusField || program.bonusField.trim() === '') {
+    if ('string' !== typeof program.bonusField ||
+        program.bonusField.trim() === '') {
+
         logger.error('bonusField is invalid. Found: ' + program.bonusField);
         return;
     }
@@ -347,11 +292,11 @@ mturk.createClient(config).then(function(api) {
 
     }
 
+    // Load files.
     results.loadSync(file, {
         separator: ',',
         quote: '"',
-        headers: true,
-        // columnsFromHeader: true // ya-csv
+        headers: true
     });
 
     logger.info('result codes found: ' + results.size());
@@ -359,19 +304,11 @@ mturk.createClient(config).then(function(api) {
     if (resultsErrors.length) {
         logger.error('result codes errors: ' + resultsErrors.length);
         logger.error('correct the errors before continuing');
+        return;
     }
 
-debugger
-
-//     if (tmp === 'csv') {
-//         reader = csv.createCsvFileReader(file, { columnsFromHeader: true });
-//         reader.addListener('data', approveAndPay);
-//     }
-//     else {
-//         winston.error('available file extensions: .csv. Found: ' + tmp);
-//     }
-
-
+    // Do it!
+    results.each(approveAndPay);
 
 
 }).catch(console.error);

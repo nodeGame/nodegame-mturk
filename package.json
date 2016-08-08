@@ -1,7 +1,7 @@
 {
     "name": "nodegame-mturk"
   , "description": "Starter package for nodegame: install scripts, configurations and development files."
-  , "version": "0.0.1"
+  , "version": "0.1.0"
   , "homepage": "http://nodegame.org"
   , "author": "Stefano Balietti <futur.dorko@gmail.com>"
   , "contributors": [
@@ -17,7 +17,6 @@
          "NDDB": "*",
          "commander": "*",
          "fs-extra": "*",
-         "ya-csv": "*",
          "underscore": "*",
          "winston": "*"
     }
