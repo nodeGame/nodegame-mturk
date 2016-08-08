@@ -316,6 +316,7 @@ mturk.createClient(config).then(function(api) {
         }, retryInterval);
     }
 
+    // TODO: grant qualification.
     function approveAndPay(data) {
         var code, id, wid, op, params;
 
