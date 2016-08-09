@@ -381,7 +381,6 @@ mturk.createClient(config).then(function(api) {
 
     function approveAndPay(data) {
         var code, id, wid, qid, op, params, paramsQualification;
-        debugger
 
         id = data.id;
         wid = data.WorkerId;
