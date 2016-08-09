@@ -24,7 +24,7 @@ var uniqueToken, sendNotification, qualificationId;
 var retryInterval, maxTries;
 
 retryInterval = 10000;
-maxTries = 3;
+maxTries = 2; // Total tries = maxTries +1 default try.
 
 var DRY_RUN;
 var UNIQUE_TOKEN, HITId;
@@ -356,17 +356,19 @@ mturk.createClient(config).then(function(api) {
                     if (timeout) clearTimeout(timeout);
                 })
                 .catch(function(err) {
+                    var str;
                     logger.error(err);
+                    str = '"' + name + '" for ' + (params.WorkerId ?
+                                  'WorkerId ' + params.WorkerId :
+                                  'AssignmentId ' + params.AssignmentId);
                     if (++nTries > maxTries) {
                         logger.error('reached max number of retries. ' +
-                                     'Operation: ' + name + ' WorkerId: ' +
-                                     params.WorkerId);
+                                     'Operation: ' + str);
                         clearTimeout(timeout);
                         return;
                     }
                     else {
-                        logger.error('retrying ' + name + ' for WorkerId: ' +
-                                     params.WorkerId + ' in ' +
+                        logger.error('retrying ' + str + ' in ' +
                                      (retryInterval/1000) + ' seconds.');
                         timeout = setTimeout(function() {
                             cb();
@@ -395,7 +397,9 @@ mturk.createClient(config).then(function(api) {
             op = 'Approve';
         }
 
-        params = { AssignementId: data.AssignmentId };
+        params = {
+            AssignmentId: data.AssignmentId
+        };
 
         if (params.RequesterFeedback) {
             params.RequesterFeedback = data.RequesterFeedback;
@@ -406,7 +410,7 @@ mturk.createClient(config).then(function(api) {
             req(op + 'Assignment', params, function() {
                 params = {
                     WorkerId: wid,
-                    AssignmentId: data.AssignementId,
+                    AssignmentId: data.AssignmentId,
                     BonusAmount: {
                         Amount: data[bonusField],
                         CurrencyCode: 'USD'
