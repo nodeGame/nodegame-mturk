@@ -13,6 +13,7 @@ Session.vim
 *~
 *.nddb
 _*
+.~*
 
 npm-debug.log
 node_modules/
@@ -21,5 +22,3 @@ descil.conf.js
 mturk.conf.js
 
 manifest.yml
-
-

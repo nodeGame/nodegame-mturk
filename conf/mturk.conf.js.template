@@ -12,9 +12,9 @@ module.exports =  {
     // The name of the bonus field in the results file (default: "bonus").
     bonusField: 'bonus',
 
-    // The name of the ExitCode field in the results file
-    //  (default: "Answer.surveycode"). This must be named after the id of
-    // the HTML input element in the MTurk frame.
+    // The name of the ExitCode field in the results file (default: "ExitCode").
+    // Notice: in the results file obtained from AMT, it is named after the id
+    // of the HTML input element in the MTurk frame.
     exitCodeField: 'Answer.surveycode',
 
     HITId: 'XXX',

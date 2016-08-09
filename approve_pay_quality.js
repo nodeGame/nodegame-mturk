@@ -44,7 +44,7 @@ inputCodesErrors = [], resultsErrors = [];
 program
     .version(version)
 
-    // Specify a configuration file (other inline-options are mixed-in.
+// Specify a configuration file (other inline-options are mixed-in.
     .option('-C, --config [confFile]',
             'Specifies a configuration file')
 
@@ -70,7 +70,7 @@ program
 
     .option('-e, --exitCodeField [exitCodeField]',
             'Overwrites the name of the exit code field ' +
-            '(default: Answer.surveycode)')
+            '(default: ExitCode)')
 
     .option('-s, --sandbox',
             'Activate sandbox mode')
@@ -345,34 +345,41 @@ mturk.createClient(config).then(function(api) {
     var reader;
 
     function req(name, params) {
-        var cb, interval, nTries;
+        var cb, timeout, nTries;
         if (DRY_RUN) return;
 
+        nTries = 1;
         cb = function() {
             api
                 .req(name, params)
                 .then(function() {
-                    if (interval) clearInterval(interval);
+                    if (timeout) clearTimeout(timeout);
                 })
                 .catch(function(err) {
                     logger.error(err);
+                    if (++nTries > maxTries) {
+                        logger.error('reached max number of retries. ' +
+                                     'Operation: ' + name + ' WorkerId: ' +
+                                     params.WorkerId);
+                        clearTimeout(timeout);
+                        return;
+                    }
+                    else {
+                        logger.error('retrying ' + name + ' for WorkerId: ' +
+                                     params.WorkerId + ' in ' +
+                                     (retryInterval/1000) + ' seconds.');
+                        timeout = setTimeout(function() {
+                            cb();
+                        }, retryInterval);
+                    }
                 });
         };
         cb();
-        nTries = 1;
-        interval = setInterval(function() {
-            if (++nTries > maxTries) {
-                logger.error('reached max number of retries. Operation: ' +
-                             name + 'WorkerId: ' + params.WorkerId);
-                clearInterval(interval);
-                return;
-            }
-            cb();
-        }, retryInterval);
     }
 
     function approveAndPay(data) {
         var code, id, wid, qid, op, params, paramsQualification;
+        debugger
 
         id = data.id;
         wid = data.WorkerId;
@@ -395,20 +402,18 @@ mturk.createClient(config).then(function(api) {
         }
 
         // No bonus granting if assignment is rejected.
-        if (code[bonusField] && op !== 'Reject') {
-
-
+        if (data[bonusField] && op !== 'Reject') {
             req(op + 'Assignment', params, function() {
                 params = {
-                    WorkerId: code.WorkerId,
-                    AssignmentId: code.AssignementId,
+                    WorkerId: wid,
+                    AssignmentId: data.AssignementId,
                     BonusAmount: {
-                        Amount: code[bonusField],
+                        Amount: data[bonusField],
                         CurrencyCode: 'USD'
                     },
                     UniqueRequestToken: uniqueToken
                 };
-                if (code.Reason) params.Reason = code.Reason;
+                if (data.Reason) params.Reason = data.Reason;
                 req('GrantBonus', params);
             });
         }
