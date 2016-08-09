@@ -18,7 +18,8 @@
          "commander": "*",
          "fs-extra": "*",
          "underscore": "*",
-         "winston": "*"
+         "winston": "*",
+         "JSUS": "*"
     }
   , "license": "MIT"
   , "main": "index.js"

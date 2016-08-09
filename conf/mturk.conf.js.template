@@ -1,5 +1,26 @@
 module.exports =  {
+
+    // AWS secret and access.
+
     access : 'YOUR_ACCESS_CODE',
     secret : 'YOUR_SECRET',
-    sandbox: true
+
+    // Options below can be overwritten by command-line parameters.
+
+    sandbox: true,
+
+    // The name of the bonus field in the results file (default: "bonus").
+    bonusField: 'bonus',
+
+    // The name of the ExitCode field in the results file
+    //  (default: "Answer.surveycode"). This must be named after the id of
+    // the HTML input element in the MTurk frame.
+    exitCodeField: 'Answer.surveycode',
+
+    HITId: 'XXX',
+
+    QualificationTypeId: 'YYY',
+
+    // Turker is notified when a qualification is granted.
+    sendNotification: false
 };
