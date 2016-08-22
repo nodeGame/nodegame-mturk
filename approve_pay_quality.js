@@ -94,32 +94,6 @@ logger = new winston.Logger({
     ]
 });
 
-// Config.
-if (program.config) {
-    if (!fs.existsSync(program.config)) {
-        logger.error('config file not existing: ' + program.config);
-        return;
-    }
-    config = require(program.config);
-}
-else {
-    config = require('./conf/mturk.conf.js');
-}
-if ('object' !== typeof config) {
-    logger.error('config require did not return an object. Found: ' + config);
-    return;
-}
-
-if ('string' !== typeof config.access || config.access.trim() === '') {
-    logger.error('config.access must be a non-empty string. Found: ' +
-                 config.access);
-    return;
-}
-if ('string' !== typeof config.secret || config.secret.trim() === '') {
-    logger.error('config.secret must be a non-empty string. Found: ' +
-                 config.secret);
-    return;
-}
 
 if (program.dry) {
     DRY_RUN = true;
@@ -331,6 +305,8 @@ results.loadSync(file, {
 
 logger.info('result codes: ' + results.size());
 
+
+
 if (resultsErrors.length) {
     logger.error('result codes errors: ' + resultsErrors.length);
     logger.error('correct the errors before continuing');
@@ -342,7 +318,6 @@ logger.info('creating mturk client');
 
 // Here we start!
 mturk.createClient(config).then(function(api) {
-    var reader;
 
     function req(name, params) {
         var cb, timeout, nTries;
@@ -380,7 +355,7 @@ mturk.createClient(config).then(function(api) {
     }
 
     function approveAndPay(data) {
-        var code, id, wid, qid, op, params, paramsQualification;
+        var id, wid, qid, op, params, paramsQualification;
 
         id = data.id;
         wid = data.WorkerId;
@@ -441,6 +416,9 @@ mturk.createClient(config).then(function(api) {
         req('AssignQualification', paramsQualification);
 
     }
+
+
+
 
     // Do it!
     results.each(approveAndPay);
