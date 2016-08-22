@@ -27,10 +27,12 @@ retryInterval = 10000;
 maxTries = 2; // Total tries = maxTries +1 default try.
 
 var DRY_RUN;
-var UNIQUE_TOKEN, HITId;
+var UNIQUE_TOKEN;
 
 UNIQUE_TOKEN = '' + 3000;
 DRY_RUN = false;
+
+var HITId, lastHIT;
 
 var inputCodes, results;
 results = new NDDB();
@@ -96,62 +98,22 @@ logger.info('creating mturk client');
 
 // Here we start!
 mturk.createClient(config).then(function(api) {
-    var reader;
+    var reader, shapi;
+
+    module.exports.api = api;
+    shapi = require('./lib/shared-api.js');
 
     if (getLastHITId) {
-
-        // Properties: Title | Reward | Expiration | CreationTime | Enumeration
-        // Sorting: Ascending | Descending
-
-        api
-            .req('SearchHITs', {
-                SortProperty: 'CreationTime',
-                SortDirection: 'Descending',
-                PageSize: 1,
-                PageNumber: 1
-        })
-        .then(function(a) {
-            console.log(a.SearchHITsResult[0]);
-        })
-        .catch(checkIt);
-
-        return;
-    }
-
-
-    function req(name, params) {
-        var cb, timeout, nTries;
-        if (DRY_RUN) return;
-
-        nTries = 1;
-        cb = function() {
-            api
-                .req(name, params)
-                .then(function() {
-                    if (timeout) clearTimeout(timeout);
-                })
-                .catch(function(err) {
-                    var str;
-                    logger.error(err);
-                    str = '"' + name + '" for ' + (params.WorkerId ?
-                                  'WorkerId ' + params.WorkerId :
-                                  'AssignmentId ' + params.AssignmentId);
-                    if (++nTries > maxTries) {
-                        logger.error('reached max number of retries. ' +
-                                     'Operation: ' + str);
-                        clearTimeout(timeout);
-                        return;
-                    }
-                    else {
-                        logger.error('retrying ' + str + ' in ' +
-                                     (retryInterval/1000) + ' seconds.');
-                        timeout = setTimeout(function() {
-                            cb();
-                        }, retryInterval);
-                    }
-                });
-        };
-        cb();
+        shapi.getLastHIT(function(err, HIT) {
+            if (err) {
+                logger.error('an error occurred retrieving last HIT id');
+                logger.error(err);
+                return;
+            }
+            HITId = HIT.HIT[0].HITId;
+            lastHIT = HIT.HIT;
+            logger.info('retrieved last HIT id: ' + HITId);
+        });
     }
 
     function extendHIT(data) {
@@ -161,29 +123,44 @@ mturk.createClient(config).then(function(api) {
         expInc = data.ExpirationIncrementInSeconds;
         if (!expInc && !assInc) {
 
-            throw new Error('ExtendHIT: both MaxAssignmentsIncrement and ' +
-                            'ExpirationIncrementInSeconds are missing.');
+            logger.error('ExtendHIT: both MaxAssignmentsIncrement and ' +
+                         'ExpirationIncrementInSeconds are missing.');
+            return;
         }
 
         if (assInc && ('number' !== typeof assInc || assInc < 1)) {
-            throw new TypeError('ExtendHIT: MaxAssignmentsIncrement must be ' +
-                                'a number > 1 or undefined. Found: ' + assInc);
+            logger.error('ExtendHIT: MaxAssignmentsIncrement must be ' +
+                         'a number > 1 or undefined. Found: ' + assInc);
+            return;
         }
 
         if (expInc && ('number' !== typeof expInc || assInc < 1)) {
-            throw new TypeError('ExtendHIT: MaxAssignmentsIncrement must be ' +
-                                'a number > 1 or undefined. Found: ' + assInc);
+            logger.error('ExtendHIT: MaxAssignmentsIncrement must be ' +
+                         'a number > 1 or undefined. Found: ' + assInc);
+            return;
         }
 
-        req('ExtendHIT', data);
+        data.HITId = '3OWZNK3RYL3FAVW4L3AUMSVTJHJ2UXX';
+
+        shapi.req('ExtendHIT', data);
+
+        console.log('extended');
     }
 
 
     function expireHIT(data) {
-        req('ForceExpireHIT', { HITId: HITid });
+        shapi.req('ForceExpireHIT', {
+            HITId: '3OWZNK3RYL3FAVW4L3AUMSVTJHJ2UXX'
+        });
     }
 
+    expireHIT();
+    return;
 
+    extendHIT({
+        // ExpirationIncrementInSeconds: 20000,
+        MaxAssignmentsIncrement: 10
+    });
 
 
 }).catch(console.error);
