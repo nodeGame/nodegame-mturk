@@ -45,17 +45,16 @@ program
     .option('-C, --config [confFile]',
             'Specifies a configuration file')
 
+    .option('-c, --connect',
+            'Opens the connection with Mturk Server')
 
-
-
-
-    .option('-L, --lastHIT [lastHIT]',
-            'Uses the HITId of the last HIT by requester')
+    .option('-L, --lastHITId [lastHITId]',
+            'Fetches the last HIT id by requester')
 
 //    .option('-T, --hitTitle [hitTitle]',
 //            'Uses the HITId of the first HIT with same title by requester')
 
-    .option('-H, --hitId [HITId]',
+    .option('-H, --HITId [HITId]',
             'HIT id')
 
     .option('-v, --validateLevel <level>',/^(0|1|2)$/i, '2')
@@ -85,60 +84,32 @@ logger = new winston.Logger({
         }),
     ]
 });
-
-
-var log;
-
 module.exports.logger = logger;
-module.exports.log = log;
-
-log = function(t) {
-    logger.log(t);
-    vorpal.log();
-};
-
-var err = function(t) {
-    logger.log(t);
-    vorpal.log();
-};
 
 // Load and check config.
+/////////////////////////
 
 var shared = require('./lib/shared');
 config = shared.loadConfig(program.config);
 config = shared.checkConfig(program, config);
+if (!config) return;
 
 // var validateCode = shared.validateCode;
 // var validateResult = shared.validateResult;
 
 // The api command after a connection has been established.
-var api, shapi;
+var api, shapi, options;
+
+// VORPAL COMMANDS
+//////////////////
 
 vorpal
     .command('connect')
     .action(connect);
 
-
 vorpal
     .command('get-last-HITId', 'Fetches and stores the last HIT id')
-    .action(function(args, callback) {
-        if (!api || !shapi) {
-            logger.error('api not available. connect first');
-            return callback();
-        }
-        shapi.getLastHIT(function(err, HIT) {
-            if (err) {
-                logger.error('an error occurred retrieving last HIT id');
-                logger.error(err);
-                return callback();
-            }
-            HITId = HIT.HIT[0].HITId;
-            lastHIT = HIT.HIT;
-            logger.info('retrieved last HIT id: ' + HITId);
-            callback();
-        });
-    });
-
+    .action(getLastHITId);
 
 vorpal
     .command('extendHIT', 'Extends the HIT.')
@@ -146,64 +117,77 @@ vorpal
             'Adds n assigments to the HIT')
     .option('-t, --time [t]',
             'Adds extra t seconds to the HIT')
-    .action(function(args, callback) {
-        if (!api || !shapi) {
-            logger.error('api not available. connect first');
-            return callback();
-
-        }
-        if (!HITId) {
-            logger.error('not HIT id found. get-last-HITId first');
-            return callback();
-        }
-        extendHIT(args.options, callback);
-    });
+    .action(extendHIT);
 
 vorpal
     .command('expireHIT', 'Expires the HIT')
-    .action(function(args, callback) {
-        var res;
-        if (!api || !shapi) {
-            logger.error('api not available. connect first');
-            return callback();
+    .action(expireHIT);
 
-        }
-        if (!HITId) {
-            logger.error('not HIT id found. get-last-HITId first');
-            return callback();
-        }
-        expireHIT(callback);
+// END VORPAL COMMANDS
+//////////////////////
+
+
+// DEFAULT ACTION (from program)
+////////////////////////////////
+
+if (program.connect) {
+    options = program.lastHITId ? { getLastHITId: true } : {};
+    connect(options, function() {
+        vorpal
+            .delimiter('ng-amt$')
+            .show();
     });
+}
+else {
+    vorpal
+        .delimiter('ng-amt$')
+        .show();
+}
+
+// END DEFAUL ACTION
+/////////////////////////////
 
 
-vorpal
-  .delimiter('ng-amt$')
-  .show();
 
+// FUNCTIONS
+////////////
 
-function extendHIT(args, callback) {
+function extendHIT(args, cb) {
     var data, assInc, expInc;
-    assInc = args.assignments;
-    expInc = args.time;
+
+    if (!api || !shapi) {
+        logger.error('api not available. connect first');
+        if (cb) cb();
+        return;
+    }
+    if (!HITId) {
+        logger.error('not HIT id found. get-last-HITId first');
+        if (cb) cb();
+        return;
+    }
+
+    assInc = args.options ? args.options.assignments : args.assignments;
+    expInc = args.options ? args.options.time : args.time;
+
     if (!expInc && !assInc) {
 
         logger.error('ExtendHIT: both MaxAssignmentsIncrement and ' +
                      'ExpirationIncrementInSeconds are missing.');
-        callback();
+        if (cb) cb();
         return;
     }
 
     if (assInc && ('number' !== typeof assInc || assInc < 1)) {
         logger.error('ExtendHIT: MaxAssignmentsIncrement must be ' +
                      'a number > 1 or undefined. Found: ' + assInc);
-        callback();
+        if (cb) cb();
         return;
     }
 
     if (expInc && ('number' !== typeof expInc || assInc < 1)) {
         logger.error('ExtendHIT: MaxAssignmentsIncrement must be ' +
                      'a number > 1 or undefined. Found: ' + assInc);
-        callback();
+        if (cb) cb();
         return;
     }
 
@@ -215,35 +199,47 @@ function extendHIT(args, callback) {
 
     shapi.req('ExtendHIT', data, function() {
         logger.info('HIT extended: ' + HITId);
-        callback();
+        if (cb) cb();
     }, function(err) {
         logger.error('HIT could **not** be extended: ' + HITId);
-        callback();
+        if (cb) cb();
     });
 
     return true;
 }
 
 
-function expireHIT(callback) {
+function expireHIT(args, cb) {
+    if (!api || !shapi) {
+        logger.error('api not available. connect first');
+        if (cb) cb();
+        return;
+
+    }
+    if (!HITId) {
+        logger.error('not HIT id found. get-last-HITId first');
+        if (cb) cb();
+        return;
+    }
+
     shapi.req('ForceExpireHIT', {
         HITId: HITId,
     }, function() {
         logger.info('HIT expired: ' + HITId);
-        callback();
+        if (cb) cb();
     }, function(err) {
         logger.error('HIT could **not** be expired: ' + HITId);
-        callback();
+        if (cb) cb();
     });
+    return true;
 }
 
 
-
-function connect(args, callback) {
-
+function connect(args, cb) {
     if (api) {
         logger.error('already connected.');
-        return callback();
+        if (cb) cb();
+        return;
     }
 
     logger.info('creating mturk client...');
@@ -258,13 +254,38 @@ function connect(args, callback) {
         module.exports.DRY_RUN = DRY_RUN;
         shapi = require('./lib/shared-api.js');
         ///////////////////////////////////////
-        callback();
-
+        if (args.getLastHITId) {
+            getLastHITId({}, cb);
+        }
+        else if (cb) {
+            cb();
+        }
 
     }).catch(function(err) {
         logger.err('failed.');
         winston.error(err);
-        callback();
+        if (cb) cb();
     });
 
+    return true;
+}
+
+function getLastHITId(args, cb) {
+    if (!api || !shapi) {
+        logger.error('api not available. connect first');
+        if (cb) cb();
+        return;
+    }
+    shapi.getLastHIT(function(err, HIT) {
+        if (err) {
+            logger.error('an error occurred retrieving last HIT id');
+            logger.error(err);
+            if (cb) cb();
+            return;
+        }
+        HITId = HIT.HIT[0].HITId;
+        lastHIT = HIT.HIT;
+        logger.info('retrieved last HIT id: ' + HITId);
+        if (cb) cb();
+    });
 }
