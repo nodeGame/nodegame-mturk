@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 "use strict";
 
 // General.
@@ -12,30 +14,34 @@ var NDDB = require('NDDB').NDDB;
 // Local.
 var version = require('./package.json').version;
 
-var config, file;
+// GLOBAL VARIABLES
+////////////
+
+// Config as loaded by file, and augmented by inline options.
+var config;
+
+// The api command after a connection has been established.
+var api, shapi, options;
+
+// Winston logger.
 var logger;
 
-var validateLevel, validateParams;
+// Reference to the HITId and HIT object.
+var HITId, HIT;
 
-var bonusField, exitCodeField;
-
-var uniqueToken, sendNotification, qualificationId;
-
-var DRY_RUN;
+// Unique token for sensitive operations.
+var uniqueToken;
 var UNIQUE_TOKEN;
 
-UNIQUE_TOKEN = '' + 3000;
-DRY_RUN = false;
+// Bonus/Results approval operations.
+var bonusField, exitCodeField;
+var validateLevel, validateParams;
+var sendNotification, qualificationId;
 
-var HITId, lastHIT;
-
-var inputCodes, results;
-results = new NDDB();
-
+var inputCodesFile, resultsFile;
 var inputCodesErrors, resultsErrors;
-inputCodesErrors = [], resultsErrors = [];
+var inputCodesDb, resultsDb;
 
-var vorpal = require('vorpal')();
 // Commander.
 
 program
@@ -51,13 +57,17 @@ program
     .option('-L, --lastHITId [lastHITId]',
             'Fetches the last HIT id by requester')
 
+    .option('-r, --resultsFile [resultsFile]',
+            'Path to a codes file with Exit and Access Codes')
+
+    .option('-i, --inputCodesFile [inputCodesFile]',
+            'Path to a codes file with Exit and Access Codes')
+
 //    .option('-T, --hitTitle [hitTitle]',
 //            'Uses the HITId of the first HIT with same title by requester')
 
     .option('-H, --HITId [HITId]',
             'HIT id')
-
-    .option('-v, --validateLevel <level>',/^(0|1|2)$/i, '2')
 
     .option('-t, --token [token]',
             'Unique token for one-time operations')
@@ -94,14 +104,9 @@ config = shared.loadConfig(program.config);
 config = shared.checkConfig(program, config);
 if (!config) return;
 
-// var validateCode = shared.validateCode;
-// var validateResult = shared.validateResult;
-
-// The api command after a connection has been established.
-var api, shapi, options;
-
 // VORPAL COMMANDS
 //////////////////
+var vorpal = require('vorpal')();
 
 vorpal
     .command('connect')
@@ -122,6 +127,72 @@ vorpal
 vorpal
     .command('expireHIT', 'Expires the HIT')
     .action(expireHIT);
+
+vorpal
+    .command('loadResults', 'Loads a results file')
+
+    .option('-f, --resultsFile [resultsFile]',
+            'Path to a codes file with Exit and Access Codes')
+
+    .option('-v, --validateLevel <level>',/^(0|1|2)$/i, '2')
+
+    .action(function(args, cb) {
+        loadResults(args.options, cb);
+    });
+
+
+vorpal
+    .command('showResult', 'Shows the result object loaded from a result file')
+
+    .option('-p, --position [position]', 'Position in the results db')
+
+    .action(function(args, cb) {
+        var idx;
+        if (!resultsDb || !resultsDb.size()) {
+            winston.error('no results to show.');
+            cb();
+            return;
+        }
+        idx = args.options.position || 0;
+        this.log(resultsDb.get(idx));
+        cb();
+    });
+
+vorpal
+    .command('loadInputCodes', 'Loads an input codes file')
+
+    .option('-f, --inputCodesFile [inputCodesFile]',
+            'Path to a codes file with Exit and Access Codes')
+
+    .option('-v, --validateLevel <level>',/^(0|1|2)$/i, '2')
+
+    .option('-b, --bonusField [bonusField]',
+            'Overwrites the name of the bonus field (default: bonus)')
+
+    .option('-e, --exitCodeField [exitCodeField]',
+            'Overwrites the name of the exit code field ' +
+            '(default: ExitCode)')
+
+    .action(function(args, cb) {
+        loadResults(args.options, cb);
+    });
+
+
+
+vorpal
+    .command('approveAndPay',
+             'Uploads the results to AMT server (approval+bonus+qualification)')
+
+    .option('-t, --token [token]',
+            'Unique token for one-time operations')
+
+    .option('-q, --qualificationId [qualificationTypeId]',
+            'Assigns also a qualification')
+
+    .action(function(args, cb) {
+        approveAndPay(args, cb);
+    });
+
 
 // END VORPAL COMMANDS
 //////////////////////
@@ -144,13 +215,193 @@ else {
         .show();
 }
 
-// END DEFAUL ACTION
+// END DEFAUL  ACTION
 /////////////////////////////
 
 
 
 // FUNCTIONS
 ////////////
+
+
+function loadResults(args, cb) {
+
+    // Checking options.
+
+    // Append and replace db.
+    if (args.append && args.replace) {
+        logger.error('cannot append and replace results db at the same time.');
+        if (cb) cb();
+        return;
+    }
+
+    // Unique Token.
+    uniqueToken = args.token || config.token;
+    if ('number' !== typeof uniqueToken || uniqueToken === 0) {
+        logger.error('unique token is invalid. Found: ' + uniqueToken);
+        if (cb) cb();
+        return;
+    }
+    logger.info('unique token: ' + uniqueToken);
+
+    // Results File.
+    resultsFile = args.resultsFile || config.resultsFile;
+    if (!resultsFile) {
+        logger.error('no results file provided.');
+        if (cb) cb();
+        return;
+
+    }
+    if (!fs.existsSync(resultsFile)) {
+        logger.error('results file not found: ' + resultsFile);
+        if (cb) cb();
+        return;
+
+    }
+    logger.info('results file: ' + resultsFile);
+
+    // Validate Level and Params.
+    validateLevel = args.validateLevel || config.validateLevel;
+    logger.info('validation level: ' + validateLevel);
+    validateParams = {
+        bonusField: bonusField,
+        exitCodeField: exitCodeField
+    };
+    if (HITId) validateParams.HITId = HITId;
+
+    // Setting up results database for import.
+
+    if (resultsDb) {
+        if (!args.append && !args.replace) {
+            logger.error('results db already found. ' +
+                         'Use options: "replace", "append"');
+            if (cb) cb();
+            return;
+        }
+    }
+    else {
+        resultsDb = getResultsDB();
+    }
+
+    // Loading results file.
+    resultsDb.loadSync(resultsFile, {
+        separator: ',',
+        quote: '"',
+        headers: true
+    });
+
+    logger.info('result codes: ' + resultsDb.size());
+    if (cb) cb();
+    return true;
+}
+
+function loadInputCodes(args, cb) {
+
+    // Input Codes.
+    inputCodesFile = args.inputCodes || config.inputCodesFile;
+    if (!inputCodesFile) {
+        if (!fs.existsSync(inputCodesFile)) {
+            logger.error('input codes file not found: ' + inputCodesFile);
+            if (cb) cb();
+            return;
+        }
+    }
+    logger.info('input codes: ' + inputCodesFile);
+    if (inputCodesDb) {
+        if (args.replace) {
+            inputCodesDb = getInputCodesDB();
+        }
+        else if (!args.append) {
+            logger.error('inputCodes db already found. ' +
+                         'Use options: "replace", "append"');
+            if (cb) cb();
+            return;
+        }
+    }
+    else {
+        inputCodesDb = getInputCodesDB();
+    }
+
+    inputCodes.loadSync(args.inputCodes);
+    logger.info('input codes: ' + inputCodes.size());
+    if (inputCodesErrors.length) {
+        logger.error('input codes errors: ' + inputCodesErrors.length);
+        logger.error('correct the errors before continuing');
+        if (cb) cb();
+        return;
+    }
+
+    return true;
+}
+
+function approveAndPayAll() {
+
+
+}
+
+function approveAndPay(data) {
+    var id, wid, qid, op, params, paramsQualification;
+
+    id = data.id;
+    wid = data.WorkerId;
+
+    if (data.Reject) {
+        if (data[bonusField]) {
+            logger.warn('Assignment rejected, but bonus found. WorkerId: ' +
+                        wid);
+        }
+        op = 'Reject';
+    }
+    else {
+        op = 'Approve';
+    }
+
+    params = {
+        AssignmentId: data.AssignmentId
+    };
+
+    if (params.RequesterFeedback) {
+        params.RequesterFeedback = data.RequesterFeedback;
+    }
+
+    // No bonus granting if assignment is rejected.
+    if (data[bonusField] && op !== 'Reject') {
+        req(op + 'Assignment', params, function() {
+            params = {
+                WorkerId: wid,
+                AssignmentId: data.AssignmentId,
+                BonusAmount: {
+                    Amount: data[bonusField],
+                    CurrencyCode: 'USD'
+                },
+                UniqueRequestToken: uniqueToken
+            };
+            if (data.Reason) params.Reason = data.Reason;
+            req('GrantBonus', params);
+        });
+    }
+    else {
+        req(op + 'Assignment', params);
+    }
+
+    // Qualification.
+    qid = data.QualificationTypeId || qualificationId;
+    if (!qid) return;
+
+    paramsQualification = {
+        WorkerId: data.WorkerId,
+        QualificationTypeId: qid,
+        SendNotification: !!data.SendNotification || sendNotification
+    };
+
+    if (data.IntegerValue) {
+        paramsQualification.IntegerValue = data.IntegerValue;
+    }
+
+    req('AssignQualification', paramsQualification);
+
+}
+
 
 function extendHIT(args, cb) {
     var data, assInc, expInc;
@@ -161,7 +412,7 @@ function extendHIT(args, cb) {
         return;
     }
     if (!HITId) {
-        logger.error('not HIT id found. get-last-HITId first');
+        logger.error('no HIT id found. get-last-HITId first');
         if (cb) cb();
         return;
     }
@@ -247,13 +498,15 @@ function connect(args, cb) {
     // Here we start!
     mturk.createClient(config).then(function(mturkapi) {
         logger.info('done.');
+
         ///////////////////////////////////////
         // Share the api with other commands.
         api = mturkapi;
         module.exports.api = api;
-        module.exports.DRY_RUN = DRY_RUN;
+        module.exports.config = config;
         shapi = require('./lib/shared-api.js');
         ///////////////////////////////////////
+
         if (args.getLastHITId) {
             getLastHITId({}, cb);
         }
@@ -288,4 +541,113 @@ function getLastHITId(args, cb) {
         logger.info('retrieved last HIT id: ' + HITId);
         if (cb) cb();
     });
+}
+
+function getInputCodesDB() {
+    var inputCodes = new NDDB();
+    inputCodes.on('insert', function(code) {
+        if (!!code.WorkerId) {
+            // Add to array, might dump to file in the future.
+            inputCodesErrors.push('missing WorkerId');
+            logger.error('invalid input code entry: ' + code);
+        }
+    });
+    inputCodes.index('id', function(i) { return i.WorkerId; });
+    return inputCodes;
+}
+
+function getResultsDB() {
+    var db;
+
+    // Cleanup globals.
+    inputCodesErrors = [], resultsErrors = [];
+
+    db = new NDDB();
+
+    db.index('id', function(i) {
+        return i.id;
+    });
+    db.index('wid', function(i) {
+        return i.WorkerId;
+    });
+    db.index('aid', function(i) {
+        return i.AssignmentId;
+    });
+    db.index('exit', function(i) {
+        return i[exitCodeField];
+    });
+
+    db.on('insert', function(i) {
+        var str;
+
+        // Check no duplicates.
+        if (this.id.get(i.id)) {
+            str = 'duplicate code id ' + i.id;
+            logger.error(str);
+            resultsErrors.push(str);
+        }
+        if (this.wid.get(i.WorkerId)) {
+            str = 'duplicate WorkerId ' + i.WorkerId;
+            logger.error(str);
+            resultsErrors.push(str);
+        }
+        if (this.exit.get(i[exitCodeField])) {
+            str = 'duplicate ExitCode ' + i[exitCodeField];
+            logger.error(str);
+            resultsErrors.push(str);
+        }
+        if (this.aid.get(i.AssignmentId)) {
+            str = 'duplicate AssignmentId ' + i.AssignmentId;
+            logger.error(str);
+            resultsErrors.push(str);
+        }
+
+        if (validateLevel) {
+            // Standard validation.
+            str = shared.validateCode(i, validateParams)
+            if (str) {
+                resultsErrors.push(str);
+                logger.error(str);
+            }
+            // Custom validation.
+            else if ('function' === typeof validateResult) {
+                str = shared.validateResult(i, validateParams);
+                if ('string' === typeof str) {
+                    resultsErrors.push(str);
+                    logger.error(str);
+                }
+            }
+        }
+
+        // We must validate WorkerId and Exit Code (if found in inputCodes db).
+        if (inputCodesDb) {
+            if (i.id) {
+                code = inputCodesDb.id.get(i.id);
+                if (!code) {
+                    str = 'id not found in inputCodes db: ' + i.id;
+                    logger.warn(str);
+                    resultsErrors.push(str);
+                }
+            }
+
+            if (i[exitCodeField]) {
+                if (!code) code = inputCodesDb.exit.get(i[exitCodeField]);
+                if (!code) {
+                    str = 'ExitCode not found: ' + i[exitCodeField];
+                }
+                else if (i[exitCodeField] !== code.ExitCode) {
+                    str = 'ExitCodes do not match. WorkerId: ' + i.WorkerId +
+                        '. ExitCode: ' + i[exitCodeField] + ' (found) vs ' +
+                        code.ExitCode + ' (expected)'
+                }
+                if (str) {
+                    logger.error(str);
+                    resultsErrors.push(str);
+                }
+            }
+        }
+
+    });
+
+    return db;
 }

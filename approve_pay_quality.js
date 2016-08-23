@@ -95,61 +95,6 @@ logger = new winston.Logger({
 });
 
 
-if (program.dry) {
-    DRY_RUN = true;
-    logger.info('dry mode: on');
-}
-
-// Sandbox.
-config.sandbox = 'undefined' === typeof program.sandbox ?
-    !!config.sandbox : !!program.sandbox;
-
-logger.info('sandbox-mode: ' + (config.sandbox ? 'on' : '**not active**'));
-
-// Hit Id.
-if (program.hitId || config.hitId) {
-    HITId = program.hitId || config.hitId;
-    if ('string' !== typeof HITId || HITId.trim() === '') {
-        logger.error('hitId is invalid. Found: ' + HITId);
-        return;
-    }
-}
-
-// Bonus field.
-if (program.bonusField || config.bonusField) {
-    bonusField = program.bonusField || config.bonusField;
-    if ('string' !== typeof bonusField || bonusField.trim() === '') {
-        logger.error('bonusField is invalid. Found: ' + bonusField);
-        return;
-    }
-    logger.info('custom bonus field: ' + bonusField);
-}
-
-// ExitCode field.
-if (program.exitCodeField || config.exitCodeField) {
-    exitCodeField = program.exitCodeField || exitCodeField;
-    if ('string' !== typeof exitCodeField || exitCodeField.trim() === '') {
-        logger.error('exitCodeField is invalid. Found: ' + exitCodeField);
-        return;
-    }
-    logger.info('custom exit code field: ' + exitCodeField);
-}
-
-
-// Qualification Type Id.
-if (program.qualificationId || config.QualificationTypeId) {
-    qualificationId = program.qualificationId || config.QualificationTypeId;
-    if ('string' !== typeof qualificationId || qualificationId.trim() === '') {
-        logger.error('qualificationId is invalid. Found: ' + qualificationId);
-        return;
-    }
-    logger.info('qualification type id: ' + qualificationId);
-}
-
-// Send Notification when granting qualification.
-sendNotification = !!(program.sendNotification || config.sendNotification);
-logger.info('notify qualification: ' + (sendNotification ? 'on' : 'off'));
-
 // Results File.
 if (!program.results) {
     logger.error('no results file provided.');

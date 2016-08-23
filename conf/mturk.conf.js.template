@@ -19,8 +19,27 @@ module.exports =  {
 
     HITId: 'XXX',
 
+    // Id of the qualification to assign upon approving/rejecting
+    // an assignment. Default: undefined.
     QualificationTypeId: 'YYY',
 
     // Turker is notified when a qualification is granted.
-    sendNotification: false
+    sendNotification: false,
+
+    // Unique token to send for sensitive operations to AMT server.
+    // Default: 3000.
+    token: 1234
+
+    // Dry-run (no request sent to server).
+    dry: false,
+
+    // Path to a results file. Default: undefined.
+    resultsFile: 'path/to/results/file'
+
+    // Path to a input codes file. Default: undefined.
+    inputCodesFile: 'path/to/input/codes/file'
+    
+    // Validation level for results.
+    validateLevel: 2
+
 };
