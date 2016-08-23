@@ -41,6 +41,9 @@ var inputCodesFile, resultsFile;
 var inputCodesErrors, resultsErrors;
 var inputCodesDb, resultsDb;
 
+// QualificationType Id;
+var QualificationTypeId, QualificationType;
+
 // Commander.
 
 program
@@ -64,6 +67,9 @@ program
 
 //    .option('-T, --hitTitle [hitTitle]',
 //            'Uses the HITId of the first HIT with same title by requester')
+
+    .option('-Q, --getQualificationTypeId',
+            'Fetches the first qualification type owned by requester from AMT')
 
     .option('-H, --HITId [HITId]',
             'HIT id')
@@ -204,9 +210,8 @@ vorpal
     .option('-q, --qualificationId [qualificationTypeId]',
             'Assigns also a qualification')
 
-    .action(function(args, cb) {
-        approveAndPay(args, cb);
-    });
+    .action(approveAndPay);
+
 
 
 // END VORPAL COMMANDS
@@ -217,7 +222,10 @@ vorpal
 ////////////////////////////////
 
 if (program.connect) {
-    options = program.lastHITId ? { getLastHITId: true } : {};
+    options = {};
+    if (program.lastHITId) options.getLastHITId = true;
+    if (program.getQualificationTypeId) options.getQualificationTypeId = true;
+
     connect(options, function() {
         vorpal
             .delimiter('ng-amt$')
@@ -340,16 +348,29 @@ function loadInputCodes(args, cb) {
     return true;
 }
 
-function approveAndPayAll() {
+function approveAndPayAll(args, cb) {
 
-    // Unique Token.
+    // Results db.
+    if (!resultsDb || !resultsDb.size()) {
+        logger.warn('no results found');
+        if (cb) cb();
+        return;
+    }
+
     uniqueToken = args.token || config.token;
     if ('number' !== typeof uniqueToken || uniqueToken === 0) {
         logger.error('unique token is invalid. Found: ' + uniqueToken);
         if (cb) cb();
         return;
     }
+
     logger.info('unique token: ' + uniqueToken);
+
+    // Do it!
+    resultsDb.each(approveAndPay);
+
+    if (cb) cb();
+    return true;
 }
 
 function approveAndPay(data) {
@@ -517,15 +538,25 @@ function connect(args, cb) {
         api = mturkapi;
         module.exports.api = api;
         module.exports.config = config;
+        // Careful: if there is an error here, vorpal exits without notice.
         shapi = require('./lib/shared-api.js');
         ///////////////////////////////////////
 
-        if (args.getLastHITId) {
+        if (args.getQualificationTypeId && args.getLastHITId) {
+            getQualificationType({}, function() {
+                getLastHITId({}, cb);
+            });
+        }
+        else if (args.getLastHITId) {
             getLastHITId({}, cb);
+        }
+        else if (args.getQualificationTypeId) {
+            getQualificationType({}, cb);
         }
         else if (cb) {
             cb();
         }
+
 
     }).catch(function(err) {
         logger.err('failed.');
@@ -534,6 +565,27 @@ function connect(args, cb) {
     });
 
     return true;
+}
+
+function getQualificationType(args, cb) {
+    if (!api || !shapi) {
+        logger.error('api not available. connect first');
+        if (cb) cb();
+        return;
+    }
+    shapi.getQualificationType(function(err, qualificationType) {
+        if (err) {
+            logger.error('an error occurred retrieving qualification type id');
+            logger.error(err);
+            if (cb) cb();
+            return;
+        }
+        QualificationType = qualificationType[0];
+        QualificationTypeId = QualificationType.QualificationTypeId;
+        logger.info('retrieved QualificationType id: ' + QualificationTypeId +
+                   ' ("' + QualificationType.Name + '")');
+        if (cb) cb();
+    });
 }
 
 function getLastHITId(args, cb) {
@@ -549,9 +601,10 @@ function getLastHITId(args, cb) {
             if (cb) cb();
             return;
         }
-        HITId = HIT.HIT[0].HITId;
-        lastHIT = HIT.HIT;
-        logger.info('retrieved last HIT id: ' + HITId);
+        HIT = HIT.HIT[0];
+        HITId = HIT.HITId;
+        logger.info('retrieved last HIT id: ' + HITId + ' ("' +
+                    HIT.Title + '")');
         if (cb) cb();
     });
 }
