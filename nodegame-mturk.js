@@ -31,7 +31,6 @@ var HITId, HIT;
 
 // Unique token for sensitive operations.
 var uniqueToken;
-var UNIQUE_TOKEN;
 
 // Bonus/Results approval operations.
 var bonusField, exitCodeField;
@@ -142,9 +141,9 @@ vorpal
 
 
 vorpal
-    .command('showResult', 'Shows the result object loaded from a result file')
+    .command('showResult', 'Shows the result object in db')
 
-    .option('-p, --position [position]', 'Position in the results db')
+    .option('-p, --position [position]', 'Position of result in db')
 
     .action(function(args, cb) {
         var idx;
@@ -174,10 +173,26 @@ vorpal
             '(default: ExitCode)')
 
     .action(function(args, cb) {
-        loadResults(args.options, cb);
+        loadInputCodes(args.options, cb);
     });
 
 
+vorpal
+    .command('showInputCode', 'Shows the first input code object in db ')
+
+    .option('-p, --position [position]', 'Position of input code in db')
+
+    .action(function(args, cb) {
+        var idx;
+        if (!inputCodesDb || !inputCodesDb.size()) {
+            winston.error('no input codes to show.');
+            cb();
+            return;
+        }
+        idx = args.options.position || 0;
+        this.log(inputCodesDb.get(idx));
+        cb();
+    });
 
 vorpal
     .command('approveAndPay',
@@ -235,15 +250,6 @@ function loadResults(args, cb) {
         return;
     }
 
-    // Unique Token.
-    uniqueToken = args.token || config.token;
-    if ('number' !== typeof uniqueToken || uniqueToken === 0) {
-        logger.error('unique token is invalid. Found: ' + uniqueToken);
-        if (cb) cb();
-        return;
-    }
-    logger.info('unique token: ' + uniqueToken);
-
     // Results File.
     resultsFile = args.resultsFile || config.resultsFile;
     if (!resultsFile) {
@@ -298,7 +304,7 @@ function loadResults(args, cb) {
 function loadInputCodes(args, cb) {
 
     // Input Codes.
-    inputCodesFile = args.inputCodes || config.inputCodesFile;
+    inputCodesFile = args.inputCodesFile || config.inputCodesFile;
     if (!inputCodesFile) {
         if (!fs.existsSync(inputCodesFile)) {
             logger.error('input codes file not found: ' + inputCodesFile);
@@ -322,21 +328,28 @@ function loadInputCodes(args, cb) {
         inputCodesDb = getInputCodesDB();
     }
 
-    inputCodes.loadSync(args.inputCodes);
-    logger.info('input codes: ' + inputCodes.size());
+    inputCodesDb.loadSync(inputCodesFile);
+    logger.info('input codes: ' + inputCodesDb.size());
     if (inputCodesErrors.length) {
         logger.error('input codes errors: ' + inputCodesErrors.length);
         logger.error('correct the errors before continuing');
         if (cb) cb();
         return;
     }
-
+    if (cb) cb();
     return true;
 }
 
 function approveAndPayAll() {
 
-
+    // Unique Token.
+    uniqueToken = args.token || config.token;
+    if ('number' !== typeof uniqueToken || uniqueToken === 0) {
+        logger.error('unique token is invalid. Found: ' + uniqueToken);
+        if (cb) cb();
+        return;
+    }
+    logger.info('unique token: ' + uniqueToken);
 }
 
 function approveAndPay(data) {
@@ -544,24 +557,26 @@ function getLastHITId(args, cb) {
 }
 
 function getInputCodesDB() {
-    var inputCodes = new NDDB();
-    inputCodes.on('insert', function(code) {
+    var db;
+
+    inputCodesErrors = [];
+    db = new NDDB();
+
+    db.on('insert', function(code) {
         if (!!code.WorkerId) {
             // Add to array, might dump to file in the future.
-            inputCodesErrors.push('missing WorkerId');
+            dbErrors.push('missing WorkerId');
             logger.error('invalid input code entry: ' + code);
         }
     });
-    inputCodes.index('id', function(i) { return i.WorkerId; });
-    return inputCodes;
+    db.index('id', function(i) { return i.WorkerId; });
+    return db;
 }
 
 function getResultsDB() {
     var db;
 
-    // Cleanup globals.
-    inputCodesErrors = [], resultsErrors = [];
-
+    resultsErrors = [];
     db = new NDDB();
 
     db.index('id', function(i) {
