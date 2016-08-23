@@ -136,6 +136,12 @@ vorpal
 vorpal
     .command('loadResults', 'Loads a results file')
 
+    .option('-r, --replace [resultsFile]',
+            'Replaces current database')
+
+    .option('-a, --append [resultsFile]',
+            'Appends to current database')
+
     .option('-f, --resultsFile [resultsFile]',
             'Path to a codes file with Exit and Access Codes')
 
@@ -165,6 +171,12 @@ vorpal
 
 vorpal
     .command('loadInputCodes', 'Loads an input codes file')
+
+    .option('-r, --replace [resultsFile]',
+            'Replaces current database')
+
+    .option('-a, --append [resultsFile]',
+            'Appends to current database')
 
     .option('-f, --inputCodesFile [inputCodesFile]',
             'Path to a codes file with Exit and Access Codes')
@@ -201,7 +213,7 @@ vorpal
     });
 
 vorpal
-    .command('approveAndPay',
+    .command('approveAndPayAll',
              'Uploads the results to AMT server (approval+bonus+qualification)')
 
     .option('-t, --token [token]',
@@ -210,7 +222,7 @@ vorpal
     .option('-q, --qualificationId [qualificationTypeId]',
             'Assigns also a qualification')
 
-    .action(approveAndPay);
+    .action(approveAndPayAll);
 
 
 
@@ -220,6 +232,13 @@ vorpal
 
 // DEFAULT ACTION (from program)
 ////////////////////////////////
+
+if (program.inputCodesFile) {
+    loadInputCodes(program);
+}
+if (program.resultsFile) {
+    loadResults(program);
+}
 
 if (program.connect) {
     options = {};
@@ -286,9 +305,13 @@ function loadResults(args, cb) {
     // Setting up results database for import.
 
     if (resultsDb) {
-        if (!args.append && !args.replace) {
+        if (args.replace) {
+            resultsDb = getResultsDB();
+        }
+        else if (!args.append) {
             logger.error('results db already found. ' +
                          'Use options: "replace", "append"');
+
             if (cb) cb();
             return;
         }
@@ -350,9 +373,11 @@ function loadInputCodes(args, cb) {
 
 function approveAndPayAll(args, cb) {
 
+    // TODO: call cb() correctly (after all results calls are done).
+
     // Results db.
     if (!resultsDb || !resultsDb.size()) {
-        logger.warn('no results found');
+        logger.error('no results found');
         if (cb) cb();
         return;
     }
@@ -367,7 +392,7 @@ function approveAndPayAll(args, cb) {
     logger.info('unique token: ' + uniqueToken);
 
     // Do it!
-    resultsDb.each(approveAndPay);
+    resultsDb.each(approveAndPay, cb);
 
     if (cb) cb();
     return true;
@@ -400,7 +425,7 @@ function approveAndPay(data) {
 
     // No bonus granting if assignment is rejected.
     if (data[bonusField] && op !== 'Reject') {
-        req(op + 'Assignment', params, function() {
+        shapi.req(op + 'Assignment', params, function() {
             params = {
                 WorkerId: wid,
                 AssignmentId: data.AssignmentId,
@@ -411,15 +436,15 @@ function approveAndPay(data) {
                 UniqueRequestToken: uniqueToken
             };
             if (data.Reason) params.Reason = data.Reason;
-            req('GrantBonus', params);
+            shapi.req('GrantBonus', params);
         });
     }
     else {
-        req(op + 'Assignment', params);
+        shapi.req(op + 'Assignment', params);
     }
 
     // Qualification.
-    qid = data.QualificationTypeId || qualificationId;
+    qid = data.QualificationTypeId || qualificationTypeId;
     if (!qid) return;
 
     paramsQualification = {
@@ -432,7 +457,7 @@ function approveAndPay(data) {
         paramsQualification.IntegerValue = data.IntegerValue;
     }
 
-    req('AssignQualification', paramsQualification);
+    shapi.req('AssignQualification', paramsQualification);
 
 }
 
