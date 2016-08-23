@@ -10,6 +10,7 @@ var _ = require('underscore');
 var program = require('commander');
 var winston = require('winston');
 var NDDB = require('NDDB').NDDB;
+var J = require('JSUS').JSUS;
 
 // Local.
 var version = require('./package.json').version;
@@ -225,6 +226,22 @@ vorpal
     .action(approveAndPayAll);
 
 
+vorpal
+    .command('getConfig', 'Shows the current configuration')
+
+    .action(function(args, cb) {
+        var cfg = J.clone(config);
+        config.resultsFile = resultsFile;
+        config.inputCodesFile = inputCodesFile;
+        config.nResults = resultsDb ? resultsDb.size() : 'NA';
+        config.nInputCodes = inputCodesDb ? inputCodesDb.size() : 'NA';
+        config.HITId = HITId || 'NA';
+        config.QualificationTypeId = QualificationTypeId || 'NA';
+        config.token = uniqueToken || 'NA';
+        config.api = api ? 'client created' : 'client **not** created';
+        this.log(config);
+        cb();
+    });
 
 // END VORPAL COMMANDS
 //////////////////////

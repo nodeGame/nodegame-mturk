@@ -15,6 +15,7 @@
   , "dependencies" : {
          "nodegame-client": "*",
          "mturk-api": ">= 3.0.2",
+         "JSUS": "*",
          "NDDB": "*",
          "commander": "*",
          "vorpal": "*",
