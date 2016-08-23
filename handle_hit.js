@@ -1,3 +1,5 @@
+"use strict";
+
 // General.
 var fs = require('fs');
 var path = require('path');
@@ -14,17 +16,13 @@ var validateCode = shared.validateCode;
 var validateResult = shared.validateResult;
 
 var config, file;
+var logger;
 
 var validateLevel, validateParams;
 
 var bonusField, exitCodeField;
 
 var uniqueToken, sendNotification, qualificationId;
-
-var retryInterval, maxTries;
-
-retryInterval = 10000;
-maxTries = 2; // Total tries = maxTries +1 default try.
 
 var DRY_RUN;
 var UNIQUE_TOKEN;
@@ -101,6 +99,9 @@ mturk.createClient(config).then(function(api) {
     var reader, shapi;
 
     module.exports.api = api;
+    module.exports.logger = logger;
+    module.exports.DRY_RUN = DRY_RUN;
+
     shapi = require('./lib/shared-api.js');
 
     if (getLastHITId) {
@@ -140,9 +141,13 @@ mturk.createClient(config).then(function(api) {
             return;
         }
 
-        data.HITId = '3OWZNK3RYL3FAVW4L3AUMSVTJHJ2UXX';
+        data.HITId = '3OWZNK3RYL3FAVW4L3AUMSVTJHJ2UX';
 
-        shapi.req('ExtendHIT', data);
+        shapi.req('ExtendHIT', data, function() {
+            logger.info('HIT extended: ' + HITId);
+        }, function(err) {
+            logger.error('HIT could **not** be extended: ' + HITId);
+        });
 
         console.log('extended');
     }
@@ -150,7 +155,11 @@ mturk.createClient(config).then(function(api) {
 
     function expireHIT(data) {
         shapi.req('ForceExpireHIT', {
-            HITId: '3OWZNK3RYL3FAVW4L3AUMSVTJHJ2UXX'
+            HITId: '3OWZNK3RYL3FAVW4L3AUMSVTJHJ2UX'
+        }, function() {
+            logger.info('HIT expired: ' + HITId);
+        }, function(err) {
+            logger.error('HIT could **not** be expired: ' + HITId);
         });
     }
 
