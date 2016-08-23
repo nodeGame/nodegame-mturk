@@ -17,6 +17,7 @@
          "mturk-api": ">= 3.0.2",
          "NDDB": "*",
          "commander": "*",
+         "vorpal": "*",
          "fs-extra": "*",
          "underscore": "*",
          "winston": "*",
