@@ -42,6 +42,7 @@ var inputCodesFile, resultsFile;
 var inputCodesErrors, resultsErrors;
 var inputCodesDb, resultsDb;
 
+var totResults;
 var nApproved, nRejected, nBonusGiven, nQualificationGiven, nProcessed;
 var errorsApproveReject, errorsBonus, errorsQualification;
 
@@ -356,8 +357,9 @@ function loadResults(args, cb) {
         quote: '"',
         headers: true
     });
+    totResults = resultsDb.size();
+    logger.info('result codes: ' + totResults);
 
-    logger.info('result codes: ' + resultsDb.size());
     if (cb) cb();
     return true;
 }
@@ -410,7 +412,6 @@ function approveOrRejectAll(args, cb) {
         return;
     }
 
-    totResults = resultsDb.size();
     nApproved = 0;
     nRejected = 0;
     nBonusGiven = 0;
@@ -546,8 +547,66 @@ function grantQualification(data, cb) {
 
 function showSummaryApproveOrReject(args, cb) {
     var err;
+
+    var totApproveExpected, totRejectExpected;
+    var totBonusExpected;
+    var totQualificationExpected;
+
+    var nBonus, maxBonus, minBonus, meanBonus, stdDevBonus, sumSquaredBonus;
+
+    if (!resultsDb || !resultsDb.size()) {
+        winston.warn('no results found.');
+        if (cb) cb();
+        return true;
+    }
+
+    totBonusExpected = 0;
+    totApproveExpected = 0;
+    totRejectExpected = 0;
+    totQualificationExpected = 0;
+
+    nBonus = 0, sumSquaredBonus = 0, stdDevBonus = 'NA';
+    resultsDb.each(function(item) {
+        var b;
+        b = item[bonusField];
+        if (b) {
+            nBonus++;
+            totBonusExpected += b;
+            if (b > maxBonus) maxBonus = b;
+            if (b < minBonus) minBonus = b;
+            sumSquaredBonus += Math.pow(b, 2);
+        }
+        if (item.Reject) totRejectExpected++;
+        else if (item.Approve) totApproveExpected++;
+        if (item.QualificationTypeId) totQualificationExpected++;
+    });
+
+    if (nBonus > 1 ) {
+        stdDevBonus = totBonusExpected -(Math.pow(sumSquaredBonus, 2) / nBonus);
+        stdDevBonus = Math.sqrt( stdDevBonus / (nBonus - 1) );
+        meanBonus = (totBonusExpected / nBonus).toFixed(2);
+    }
+    else if (nBonus === 1) {
+        meanBonus = maxBonus;
+    }
+
+    winston.info('results: ' + totResults || 0);
+    winston.info('to approve: ' + totApproveExpected);
+    winston.info('to reject: ' + totRejectExpected);
+    winston.info('bonuses: ' + nBonus);
+    if (nBonus > 0) {
+        winston.info('bonuses tot: ' + totBonusExpected);
+        if (nBonus > 1) {
+            winston.info('bonuses mean: ' + meanBonus);
+            winston.info('bonuses min: ' + minBonus);
+            winston.info('bonuses max: ' + maxBonus);
+            winston.info('bonuses stddev: ' + stdDevBonus);
+        }
+    }
+    winston.info('qualifications: ' + totQualificationExpected);
+
     if ('number' !== typeof nProcessed) {
-        winston.warn('no summary to show.');
+        winston.warn('results not yet uploaded to amt.');
         if (cb) cb();
         return true;
     }
