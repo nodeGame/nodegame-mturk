@@ -178,9 +178,9 @@ vorpal
     });
 
 vorpal
-    .command('showSummary', 'Shows summary of "approveAndPayAll" operation')
+    .command('showSummary', 'Shows summary of "approveOrRejectAll" operation')
 
-    .action(approveAndPaySummary);
+    .action(showSummaryApproveOrReject);
 
 
 vorpal
@@ -227,7 +227,7 @@ vorpal
     });
 
 vorpal
-    .command('approveAndPayAll',
+    .command('approveOrRejectAll',
              'Uploads the results to AMT server (approval+bonus+qualification)')
 
     .option('-t, --token [token]',
@@ -236,7 +236,7 @@ vorpal
     .option('-q, --qualificationId [qualificationTypeId]',
             'Assigns also a qualification')
 
-    .action(approveAndPayAll);
+    .action(approveOrRejectAll);
 
 
 vorpal
@@ -401,7 +401,7 @@ function loadInputCodes(args, cb) {
     return true;
 }
 
-function approveAndPayAll(args, cb) {
+function approveOrRejectAll(args, cb) {
 
     // Results db must exists and not be empty.
     if (!resultsDb || !resultsDb.size()) {
@@ -431,19 +431,120 @@ function approveAndPayAll(args, cb) {
     logger.info('unique token: ' + uniqueToken);
 
     // Do it!
-    resultsDb.each(approveAndPay, function(err, cb) {
-        if (!err) {
-            winston.error(err);
-        }
-        if (++nProcessed === totResults) {
-            approveAndPaySummary(undefined, cb);
+    resultsDb.each(approveOrReject, function(err, cb) {
+        if (++nProcessed >= totResults) {
+            showSummaryapproveOrReject(undefined, cb);
         }
     });
 
     return true;
 }
 
-function approveAndPaySummary(args, cb) {
+function approveOrReject(data, cb) {
+    var id, wid, op, params;
+
+    id = data.id;
+    wid = data.WorkerId;
+
+    if (data.Reject) {
+        if (data[bonusField]) {
+            logger.warn('Assignment rejected, but bonus found. WorkerId: ' +
+                        wid);
+        }
+        op = 'Reject';
+    }
+    else {
+        op = 'Approve';
+    }
+
+    params = {
+        AssignmentId: data.AssignmentId
+    };
+
+    if (params.RequesterFeedback) {
+        params.RequesterFeedback = data.RequesterFeedback;
+    }
+
+    // No bonus granting if assignment is rejected.
+
+    shapi.req(op + 'Assignment', params, function() {
+        if (op === 'Reject') {
+            nRejected++;
+        }
+        else {
+            nApproved++;
+            if (data[bonusField]) {
+                grantBonus(data, function() {
+                    if (data.QualificationTypeId) {
+                        grantQualification(data, cb);
+                    }
+                    else if (cb) cb();
+                });
+            }
+            else if (data.QualificationTypeId) {
+                grantQualification(data, cb);
+            }
+        }
+    }, function(err) {
+        errorsApproveReject.push(err);
+        if (cb) cb();
+    });
+
+    return true;
+}
+
+function grantBonus(data, cb) {
+    var params;
+
+    params = {
+        WorkerId: data.WorkerId,
+        AssignmentId: data.AssignmentId,
+        BonusAmount: {
+            Amount: data[bonusField],
+            CurrencyCode: 'USD'
+        },
+        UniqueRequestToken: uniqueToken
+    };
+    if (data.Reason) params.Reason = data.Reason;
+    shapi.req('GrantBonus', params, function(res) {
+        nBonuseGiven++;
+        totBonuses += data[bonusField];
+        if (cb) cb();
+    }, function (err) {
+        errorsBonus.push(err);
+        if (cb) cb(err);
+    });
+}
+
+function grantQualification(data, cb) {
+    var qid, params;
+
+    // Qualification.
+    qid = data.QualificationTypeId || qualificationTypeId;
+    if (!qid) return;
+
+    params = {
+        WorkerId: data.WorkerId,
+        QualificationTypeId: qid,
+        SendNotification: !!data.SendNotification || sendNotification
+    };
+
+    if (data.IntegerValue) {
+        paramsQualification.IntegerValue = data.IntegerValue;
+    }
+
+    shapi.req('AssignQualification', params, function(res) {
+        nQualificationGiven++;
+        if (cb) cb();
+    }, function (err) {
+        errorsQualification.push(err);
+        if (cb) cb(err);
+    });
+
+    return true;
+}
+
+function showSummaryApproveOrReject(args, cb) {
     var err;
     if ('number' !== typeof nProcessed) {
         winston.warn('no summary to show.');
@@ -474,101 +575,6 @@ function approveAndPaySummary(args, cb) {
         winston.warn('command showErrors might not be available right now');
     }
     if (cb) cb();
-    return true;
-}
-
-function approveAndPay(data, cb) {
-    var id, wid, op, params;
-
-    id = data.id;
-    wid = data.WorkerId;
-
-    if (data.Reject) {
-        if (data[bonusField]) {
-            logger.warn('Assignment rejected, but bonus found. WorkerId: ' +
-                        wid);
-        }
-        op = 'Reject';
-    }
-    else {
-        op = 'Approve';
-    }
-
-    params = {
-        AssignmentId: data.AssignmentId
-    };
-
-    if (params.RequesterFeedback) {
-        params.RequesterFeedback = data.RequesterFeedback;
-    }
-
-    // No bonus granting if assignment is rejected.
-    if (data[bonusField] && op !== 'Reject') {
-
-        if (data.QualificationTypeId) {
-            shapi.req(op + 'Assignment', params, function() {
-                    grantBonus(data, function() {
-                        grantQualification(data, cb);
-                    });
-            });
-        }
-        else {
-            shapi.req(op + 'Assignment', params, function() {
-                grantBonus(data, cb);
-            });
-        }
-    }
-    else if (data.QualificationTypeI) {
-        shapi.req(op + 'Assignment', params, function() {
-            grantQualification(data, cb);
-        });
-    }
-    else {
-        shapi.req(op + 'Assignment', params, cb);
-    }
-
-    return true;
-}
-
-function grantBonus(data, cb) {
-    var params;
-
-    params = {
-        WorkerId: data.WorkerId,
-        AssignmentId: data.AssignmentId,
-        BonusAmount: {
-            Amount: data[bonusField],
-            CurrencyCode: 'USD'
-        },
-        UniqueRequestToken: uniqueToken
-    };
-    if (data.Reason) params.Reason = data.Reason;
-    shapi.req('GrantBonus', params);
-}
-
-function grantQualification(data, cb) {
-    var qid, params;
-
-    // Qualification.
-    qid = data.QualificationTypeId || qualificationTypeId;
-    if (!qid) return;
-
-    params = {
-        WorkerId: data.WorkerId,
-        QualificationTypeId: qid,
-        SendNotification: !!data.SendNotification || sendNotification
-    };
-
-    if (data.IntegerValue) {
-        paramsQualification.IntegerValue = data.IntegerValue;
-    }
-
-    shapi.req('AssignQualification', params, function(res) {
-        if (cb) cb();
-    }, function (err) {
-        if (cb) cb(err);
-    });
-
     return true;
 }
 
