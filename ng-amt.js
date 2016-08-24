@@ -42,7 +42,7 @@ var inputCodesFile, resultsFile;
 var inputCodesErrors, resultsErrors;
 var inputCodesDb, resultsDb;
 
-var totResults;
+var totResults, totBonusPaid;
 var nApproved, nRejected, nBonusGiven, nQualificationGiven, nProcessed;
 var errorsApproveReject, errorsBonus, errorsQualification;
 
@@ -89,7 +89,7 @@ program
             'Dry-run: does not send requests to servers')
 
     .option('-q, --quiet',
-            'No/minimal output printed to console')
+            'No/minimal output printed to console');
 
 
 // Parsing input parameters.
@@ -200,7 +200,7 @@ vorpal
 
 
 vorpal
-    .command('show <what>', 'Shows ')
+    .command('show <what>', 'Prints out the requested info')
     .autocomplete(['results', 'uploadStats', 'inputCodes', 'config' ])
     .option('-p, --position [position]', 'Position of result|input code  in db')
 
@@ -432,7 +432,7 @@ function uploadResults(args, cb) {
     // Do it!
     resultsDb.each(uploadResult, function(err, cb) {
         if (++nProcessed >= totResults) {
-            showSummaryuploadResults(undefined, cb);
+            showUploadStats(undefined, cb);
         }
     });
 
@@ -506,8 +506,8 @@ function grantBonus(data, cb) {
     };
     if (data.Reason) params.Reason = data.Reason;
     shapi.req('GrantBonus', params, function(res) {
-        nBonuseGiven++;
-        totBonuses += data[cfg.bonusField];
+        nBonusGiven++;
+        totBonusPaid += data[cfg.bonusField];
         if (cb) cb();
     }, function (err) {
         errorsBonus.push(err);
@@ -519,7 +519,7 @@ function grantQualification(data, cb) {
     var qid, params;
 
     // Qualification.
-    qid = data.QualificationTypeId || qualificationTypeId;
+    qid = data.QualificationTypeId || QualificationTypeId;
     if (!qid) return;
 
     params = {
@@ -529,7 +529,7 @@ function grantQualification(data, cb) {
     };
 
     if (data.IntegerValue) {
-        paramsQualification.IntegerValue = data.IntegerValue;
+        params.IntegerValue = data.IntegerValue;
     }
 
     shapi.req('AssignQualification', params, function(res) {
@@ -706,7 +706,7 @@ function expireHIT(args, cb) {
     }
 
     shapi.req('ForceExpireHIT', {
-        HITId: HITId,
+        HITId: HITId
     }, function() {
         logger.info('HIT expired: ' + HITId);
         if (cb) cb();
@@ -754,7 +754,6 @@ function connect(args, cb) {
         else if (cb) {
             cb();
         }
-
 
     }).catch(function(err) {
         logger.err('failed.');
@@ -816,7 +815,7 @@ function getInputCodesDB() {
     db.on('insert', function(code) {
         if (!!code.WorkerId) {
             // Add to array, might dump to file in the future.
-            dbErrors.push('missing WorkerId');
+            inputCodesErrors.push('missing WorkerId');
             logger.error('invalid input code entry: ' + code);
         }
     });
@@ -844,7 +843,7 @@ function getResultsDB() {
     });
 
     db.on('insert', function(i) {
-        var str;
+        var str, code;
 
         // Check no duplicates.
         if (this.id.get(i.id)) {
@@ -870,7 +869,7 @@ function getResultsDB() {
 
         if (validateLevel) {
             // Standard validation.
-            str = shared.validateCode(i, validateParams)
+            str = shared.validateCode(i, validateParams);
             if (str) {
                 resultsErrors.push(str);
                 logger.error(str);
@@ -904,7 +903,7 @@ function getResultsDB() {
                 else if (i[cfg.exitCodeField] !== code.ExitCode) {
                     str = 'ExitCodes do not match. WorkerId: ' + i.WorkerId +
                         '. ExitCode: ' + i[cfg.exitCodeField] +
-                        ' (found) vs ' + code.ExitCode + ' (expected)'
+                        ' (found) vs ' + code.ExitCode + ' (expected)';
                 }
                 if (str) {
                     logger.error(str);
