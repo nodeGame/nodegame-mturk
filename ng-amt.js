@@ -19,7 +19,7 @@ var version = require('./package.json').version;
 ////////////
 
 // Config as loaded by file, and augmented by inline options.
-var config;
+var cfg;
 
 // The api command after a connection has been established.
 var api, shapi, options;
@@ -114,9 +114,9 @@ module.exports.logger = logger;
 /////////////////////////
 
 var shared = require('./lib/shared');
-config = shared.loadConfig(program.config);
-config = shared.checkConfig(program, config);
-if (!config) return;
+cfg = shared.loadConfig(program.config);
+cfg = shared.checkConfig(program, cfg);
+if (!cfg) return;
 
 // VORPAL COMMANDS
 //////////////////
@@ -162,29 +162,6 @@ vorpal
 
 
 vorpal
-    .command('showResult', 'Shows the result object in db')
-
-    .option('-p, --position [position]', 'Position of result in db')
-
-    .action(function(args, cb) {
-        var idx;
-        if (!resultsDb || !resultsDb.size()) {
-            winston.error('no results to show.');
-            cb();
-            return;
-        }
-        idx = args.options.position || 0;
-        this.log(resultsDb.get(idx));
-        cb();
-    });
-
-vorpal
-    .command('showSummary', 'Shows summary of "approveOrRejectAll" operation')
-
-    .action(showSummaryApproveOrReject);
-
-
-vorpal
     .command('loadInputCodes', 'Loads an input codes file')
 
     .option('-r, --replace [resultsFile]',
@@ -209,26 +186,8 @@ vorpal
         loadInputCodes(args.options, cb);
     });
 
-
 vorpal
-    .command('showInputCode', 'Shows the first input code object in db ')
-
-    .option('-p, --position [position]', 'Position of input code in db')
-
-    .action(function(args, cb) {
-        var idx;
-        if (!inputCodesDb || !inputCodesDb.size()) {
-            winston.error('no input codes to show.');
-            cb();
-            return;
-        }
-        idx = args.options.position || 0;
-        this.log(inputCodesDb.get(idx));
-        cb();
-    });
-
-vorpal
-    .command('approveOrRejectAll',
+    .command('uploadResults',
              'Uploads the results to AMT server (approval+bonus+qualification)')
 
     .option('-t, --token [token]',
@@ -237,25 +196,58 @@ vorpal
     .option('-q, --qualificationId [qualificationTypeId]',
             'Assigns also a qualification')
 
-    .action(approveOrRejectAll);
+    .action(uploadResults);
 
 
 vorpal
-    .command('getConfig', 'Shows the current configuration')
+    .command('show <what>', 'Shows ')
+    .autocomplete(['results', 'uploadStats', 'inputCodes', 'config' ])
+    .option('-p, --position [position]', 'Position of result|input code  in db')
 
     .action(function(args, cb) {
-        var cfg = J.clone(config);
-        config.resultsFile = resultsFile;
-        config.inputCodesFile = inputCodesFile;
-        config.nResults = resultsDb ? resultsDb.size() : 'NA';
-        config.nInputCodes = inputCodesDb ? inputCodesDb.size() : 'NA';
-        config.HITId = HITId || 'NA';
-        config.QualificationTypeId = QualificationTypeId || 'NA';
-        config.token = uniqueToken || 'NA';
-        config.api = api ? 'client created' : 'client **not** created';
-        this.log(config);
+        var idx, config;
+
+        if (args.what === 'results') {
+            if (!resultsDb || !resultsDb.size()) {
+                winston.error('no results to show.');
+            }
+            else {
+                idx = args.options.position || 0;
+                this.log(resultsDb.get(idx));
+            }
+        }
+        else if (args.what === 'inputCodes') {
+            if (!inputCodesDb || !inputCodesDb.size()) {
+                winston.error('no input codes to show.');
+            }
+            else {
+                idx = args.options.position || 0;
+                this.log(inputCodesDb.get(idx));
+            }
+        }
+
+        else if (args.what === 'uploadStats') {
+            showUploadStats();
+        }
+
+        else if (args.what === 'config') {
+            config = J.clone(cfg);
+            config.resultsFile = resultsFile;
+            config.inputCodesFile = inputCodesFile;
+            config.nResults = resultsDb ? resultsDb.size() : 'NA';
+            config.nInputCodes = inputCodesDb ? inputCodesDb.size() : 'NA';
+            config.HITId = HITId || 'NA';
+            config.QualificationTypeId = QualificationTypeId || 'NA';
+            config.token = uniqueToken || 'NA';
+            config.api = api ? 'client created' : 'client **not** created';
+            this.log(config);
+        }
+        else {
+            winston.warn('unknown "show" argument: ' + args.what);
+        }
         cb();
     });
+
 
 // END VORPAL COMMANDS
 //////////////////////
@@ -309,7 +301,7 @@ function loadResults(args, cb) {
     }
 
     // Results File.
-    resultsFile = args.resultsFile || config.resultsFile;
+    resultsFile = args.resultsFile || cfg.resultsFile;
     if (!resultsFile) {
         logger.error('no results file provided.');
         if (cb) cb();
@@ -325,11 +317,11 @@ function loadResults(args, cb) {
     logger.info('results file: ' + resultsFile);
 
     // Validate Level and Params.
-    validateLevel = args.validateLevel || config.validateLevel;
+    validateLevel = args.validateLevel || cfg.validateLevel;
     logger.info('validation level: ' + validateLevel);
     validateParams = {
-        bonusField: bonusField,
-        exitCodeField: exitCodeField
+        bonusField: cfg.bonusField,
+        exitCodeField: cfg.exitCodeField
     };
     if (HITId) validateParams.HITId = HITId;
 
@@ -367,7 +359,7 @@ function loadResults(args, cb) {
 function loadInputCodes(args, cb) {
 
     // Input Codes.
-    inputCodesFile = args.inputCodesFile || config.inputCodesFile;
+    inputCodesFile = args.inputCodesFile || cfg.inputCodesFile;
     if (!inputCodesFile) {
         if (!fs.existsSync(inputCodesFile)) {
             logger.error('input codes file not found: ' + inputCodesFile);
@@ -403,7 +395,13 @@ function loadInputCodes(args, cb) {
     return true;
 }
 
-function approveOrRejectAll(args, cb) {
+function uploadResults(args, cb) {
+
+    if (!api || !shapi) {
+        logger.error('api not available. connect first');
+        if (cb) cb();
+        return;
+    }
 
     // Results db must exists and not be empty.
     if (!resultsDb || !resultsDb.size()) {
@@ -422,7 +420,7 @@ function approveOrRejectAll(args, cb) {
     errorsBonus = [];
     errorsQualification = [];
 
-    uniqueToken = args.token || config.token;
+    uniqueToken = args.token || cfg.token;
     if ('number' !== typeof uniqueToken || uniqueToken === 0) {
         logger.error('unique token is invalid. Found: ' + uniqueToken);
         if (cb) cb();
@@ -432,23 +430,23 @@ function approveOrRejectAll(args, cb) {
     logger.info('unique token: ' + uniqueToken);
 
     // Do it!
-    resultsDb.each(approveOrReject, function(err, cb) {
+    resultsDb.each(uploadResult, function(err, cb) {
         if (++nProcessed >= totResults) {
-            showSummaryapproveOrReject(undefined, cb);
+            showSummaryuploadResults(undefined, cb);
         }
     });
 
     return true;
 }
 
-function approveOrReject(data, cb) {
+function uploadResult(data, cb) {
     var id, wid, op, params;
 
     id = data.id;
     wid = data.WorkerId;
 
     if (data.Reject) {
-        if (data[bonusField]) {
+        if (data[cfg.bonusField]) {
             logger.warn('Assignment rejected, but bonus found. WorkerId: ' +
                         wid);
         }
@@ -474,7 +472,7 @@ function approveOrReject(data, cb) {
         }
         else {
             nApproved++;
-            if (data[bonusField]) {
+            if (data[cfg.bonusField]) {
                 grantBonus(data, function() {
                     if (data.QualificationTypeId) {
                         grantQualification(data, cb);
@@ -501,7 +499,7 @@ function grantBonus(data, cb) {
         WorkerId: data.WorkerId,
         AssignmentId: data.AssignmentId,
         BonusAmount: {
-            Amount: data[bonusField],
+            Amount: data[cfg.bonusField],
             CurrencyCode: 'USD'
         },
         UniqueRequestToken: uniqueToken
@@ -509,7 +507,7 @@ function grantBonus(data, cb) {
     if (data.Reason) params.Reason = data.Reason;
     shapi.req('GrantBonus', params, function(res) {
         nBonuseGiven++;
-        totBonuses += data[bonusField];
+        totBonuses += data[cfg.bonusField];
         if (cb) cb();
     }, function (err) {
         errorsBonus.push(err);
@@ -545,7 +543,7 @@ function grantQualification(data, cb) {
     return true;
 }
 
-function showSummaryApproveOrReject(args, cb) {
+function showUploadStats(args, cb) {
     var err;
 
     var totApproveExpected, totRejectExpected;
@@ -568,7 +566,7 @@ function showSummaryApproveOrReject(args, cb) {
     nBonus = 0, sumSquaredBonus = 0, stdDevBonus = 'NA';
     resultsDb.each(function(item) {
         var b;
-        b = item[bonusField];
+        b = item[cfg.bonusField];
         if (b) {
             nBonus++;
             totBonusExpected += b;
@@ -730,14 +728,14 @@ function connect(args, cb) {
     logger.info('creating mturk client...');
 
     // Here we start!
-    mturk.createClient(config).then(function(mturkapi) {
+    mturk.createClient(cfg).then(function(mturkapi) {
         logger.info('done.');
 
         ///////////////////////////////////////
         // Share the api with other commands.
         api = mturkapi;
         module.exports.api = api;
-        module.exports.config = config;
+        module.exports.cfg = cfg;
         // Careful: if there is an error here, vorpal exits without notice.
         shapi = require('./lib/shared-api.js');
         ///////////////////////////////////////
@@ -842,7 +840,7 @@ function getResultsDB() {
         return i.AssignmentId;
     });
     db.index('exit', function(i) {
-        return i[exitCodeField];
+        return i[cfg.exitCodeField];
     });
 
     db.on('insert', function(i) {
@@ -859,8 +857,8 @@ function getResultsDB() {
             logger.error(str);
             resultsErrors.push(str);
         }
-        if (this.exit.get(i[exitCodeField])) {
-            str = 'duplicate ExitCode ' + i[exitCodeField];
+        if (this.exit.get(i[cfg.exitCodeField])) {
+            str = 'duplicate ExitCode ' + i[cfg.exitCodeField];
             logger.error(str);
             resultsErrors.push(str);
         }
@@ -898,15 +896,15 @@ function getResultsDB() {
                 }
             }
 
-            if (i[exitCodeField]) {
-                if (!code) code = inputCodesDb.exit.get(i[exitCodeField]);
+            if (i[cfg.exitCodeField]) {
+                if (!code) code = inputCodesDb.exit.get(i[cfg.exitCodeField]);
                 if (!code) {
-                    str = 'ExitCode not found: ' + i[exitCodeField];
+                    str = 'ExitCode not found: ' + i[cfg.exitCodeField];
                 }
-                else if (i[exitCodeField] !== code.ExitCode) {
+                else if (i[cfg.exitCodeField] !== code.ExitCode) {
                     str = 'ExitCodes do not match. WorkerId: ' + i.WorkerId +
-                        '. ExitCode: ' + i[exitCodeField] + ' (found) vs ' +
-                        code.ExitCode + ' (expected)'
+                        '. ExitCode: ' + i[cfg.exitCodeField] +
+                        ' (found) vs ' + code.ExitCode + ' (expected)'
                 }
                 if (str) {
                     logger.error(str);
