@@ -280,7 +280,7 @@ else {
         .show();
 }
 
-// END DEFAUL  ACTION
+// END DEFAULT  ACTION
 /////////////////////////////
 
 
@@ -430,7 +430,7 @@ function uploadResults(args, cb) {
     logger.info('unique token: ' + uniqueToken);
 
     // Do it!
-    resultsDb.each(uploadResult, function(err, cb) {
+    resultsDb.each(uploadResult, function(err) {
         if (++nProcessed >= totResults) {
             showUploadStats(undefined, cb);
         }
@@ -628,8 +628,7 @@ function showUploadStats(args, cb) {
         winston.error('errors qualifications: ' + errorsQualification.length);
     }
     if (err) {
-        winston.warn('type showErrors to have more details about the errors');
-        winston.warn('command showErrors might not be available right now');
+    // winston.warn('type showErrors to have more details about the errors');
     }
     if (cb) cb();
     return true;
