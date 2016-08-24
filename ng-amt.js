@@ -42,6 +42,9 @@ var inputCodesFile, resultsFile;
 var inputCodesErrors, resultsErrors;
 var inputCodesDb, resultsDb;
 
+var nApproved, nRejected, nBonusGiven, nQualificationGiven, nProcessed;
+var errorsApproveReject, errorsBonus, errorsQualification;
+
 // QualificationType Id;
 var QualificationTypeId, QualificationType;
 
@@ -98,6 +101,7 @@ logger = new winston.Logger({
             colorize: true,
             level: program.quiet ? 'error' : 'silly'
         }),
+        new (winston.transports.File)({ filename: 'log/nodegame-mturk.log' })
     ]
 });
 module.exports.logger = logger;
@@ -169,6 +173,12 @@ vorpal
         this.log(resultsDb.get(idx));
         cb();
     });
+
+vorpal
+    .command('showSummary', 'Shows summary of "approveAndPayAll" operation')
+
+    .action(approveAndPaySummary);
+
 
 vorpal
     .command('loadInputCodes', 'Loads an input codes file')
@@ -390,14 +400,23 @@ function loadInputCodes(args, cb) {
 
 function approveAndPayAll(args, cb) {
 
-    // TODO: call cb() correctly (after all results calls are done).
-
-    // Results db.
+    // Results db must exists and not be empty.
     if (!resultsDb || !resultsDb.size()) {
         logger.error('no results found');
         if (cb) cb();
         return;
     }
+
+    totResults = resultsDb.size();
+    nApproved = 0;
+    nRejected = 0;
+    nBonusGiven = 0;
+    nQualificationGiven = 0;
+    nProcessed = 0;
+
+    errorsApproveReject = [];
+    errorsBonus = [];
+    errorsQualification = [];
 
     uniqueToken = args.token || config.token;
     if ('number' !== typeof uniqueToken || uniqueToken === 0) {
@@ -409,14 +428,54 @@ function approveAndPayAll(args, cb) {
     logger.info('unique token: ' + uniqueToken);
 
     // Do it!
-    resultsDb.each(approveAndPay, cb);
+    resultsDb.each(approveAndPay, function(err, cb) {
+        if (!err) {
+            winston.error(err);
+        }
+        if (++nProcessed === totResults) {
+            approveAndPaySummary(undefined, cb);
+        }
+    });
 
+    return true;
+}
+
+function approveAndPaySummary(args, cb) {
+    var err;
+    if ('number' !== typeof nProcessed) {
+        winston.warn('no summary to show.');
+        if (cb) cb();
+        return true;
+    }
+
+    winston.info('results processed: ' + nProcessed + '/' + totResults);
+    winston.info('approved: ' + nApproved);
+    winston.info('rejected: ' + nRejected);
+    winston.info('bonuses: ' + nBonusGiven +
+                 '(paid: ' + totBonusPaid + ')');
+    winston.info('qualifications: ' + nQualificationGiven);
+    if (errorsApproveReject.length) {
+        err = true;
+        winston.error('errors approve/reject: ' + errorsApproveReject.length);
+    }
+    if (errorsBonus.length) {
+        err = true;
+        winston.error('errors bonuses: ' + errorsBonus.length);
+    }
+    if (errorsQualification.length) {
+        err = true;
+        winston.error('errors qualifications: ' + errorsQualification.length);
+    }
+    if (err) {
+        winston.warn('type showErrors to have more details about the errors');
+        winston.warn('command showErrors might not be available right now');
+    }
     if (cb) cb();
     return true;
 }
 
-function approveAndPay(data) {
-    var id, wid, qid, op, params, paramsQualification;
+function approveAndPay(data, cb) {
+    var id, wid, op, params;
 
     id = data.id;
     wid = data.WorkerId;
@@ -442,29 +501,56 @@ function approveAndPay(data) {
 
     // No bonus granting if assignment is rejected.
     if (data[bonusField] && op !== 'Reject') {
+
+        if (data.QualificationTypeId) {
+            shapi.req(op + 'Assignment', params, function() {
+                    grantBonus(data, function() {
+                        grantQualification(data, cb);
+                    });
+            });
+        }
+        else {
+            shapi.req(op + 'Assignment', params, function() {
+                grantBonus(data, cb);
+            });
+        }
+    }
+    else if (data.QualificationTypeI) {
         shapi.req(op + 'Assignment', params, function() {
-            params = {
-                WorkerId: wid,
-                AssignmentId: data.AssignmentId,
-                BonusAmount: {
-                    Amount: data[bonusField],
-                    CurrencyCode: 'USD'
-                },
-                UniqueRequestToken: uniqueToken
-            };
-            if (data.Reason) params.Reason = data.Reason;
-            shapi.req('GrantBonus', params);
+            grantQualification(data, cb);
         });
     }
     else {
-        shapi.req(op + 'Assignment', params);
+        shapi.req(op + 'Assignment', params, cb);
     }
+
+    return true;
+}
+
+function grantBonus(data, cb) {
+    var params;
+
+    params = {
+        WorkerId: data.WorkerId,
+        AssignmentId: data.AssignmentId,
+        BonusAmount: {
+            Amount: data[bonusField],
+            CurrencyCode: 'USD'
+        },
+        UniqueRequestToken: uniqueToken
+    };
+    if (data.Reason) params.Reason = data.Reason;
+    shapi.req('GrantBonus', params);
+}
+
+function grantQualification(data, cb) {
+    var qid, params;
 
     // Qualification.
     qid = data.QualificationTypeId || qualificationTypeId;
     if (!qid) return;
 
-    paramsQualification = {
+    params = {
         WorkerId: data.WorkerId,
         QualificationTypeId: qid,
         SendNotification: !!data.SendNotification || sendNotification
@@ -474,10 +560,14 @@ function approveAndPay(data) {
         paramsQualification.IntegerValue = data.IntegerValue;
     }
 
-    shapi.req('AssignQualification', paramsQualification);
+    shapi.req('AssignQualification', params, function(res) {
+        if (cb) cb();
+    }, function (err) {
+        if (cb) cb(err);
+    });
 
+    return true;
 }
-
 
 function extendHIT(args, cb) {
     var data, assInc, expInc;

@@ -22,3 +22,5 @@ descil.conf.js
 mturk.conf.js
 
 manifest.yml
+
+log/*.log
