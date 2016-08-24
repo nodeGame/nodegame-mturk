@@ -101,7 +101,10 @@ logger = new winston.Logger({
             colorize: true,
             level: program.quiet ? 'error' : 'silly'
         }),
-        new (winston.transports.File)({ filename: 'log/nodegame-mturk.log' })
+        new (winston.transports.File)({
+            filename: 'log/nodegame-mturk.log',
+            level: 'silly'
+        })
     ]
 });
 module.exports.logger = logger;
