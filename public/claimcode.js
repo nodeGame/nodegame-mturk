@@ -2,10 +2,6 @@ $(document).ready(function() {
     var wid, aid, hid;
     var host;
 
-    function serverError(data) {
-        console.log(data);
-    }
-
     function encrypt(o) {
         var i, len;
         if ('undefined' === typeof JSON) {
@@ -17,7 +13,6 @@ $(document).ready(function() {
 
     function displayLink(code) {
         var link, url;
-        debugger
         url = host + 'auth/' + code;
         link = document.getElementById('game-link');
         link.href = url;
@@ -63,19 +58,19 @@ $(document).ready(function() {
 
     host = 'https://a-e-g.herokuapp.com';
 
-//     // Get parameters (must be on Mturk).
-//     if ('function' !== typeof turkGetParam) return;
-// 
-//     wid = turkGetParam('workerId');
-//     // If there is no worker id, the turker has not yet accepted the HIT.
-//     if ('undefined' === typeof wid) return;
-//     aid = turkGetParam('assignmentId');
-//     hid = turkGetParam('hitId');
+    // Get parameters (must be on Mturk).
+    if ('function' !== typeof turkGetParam) return;
+    
+    wid = turkGetParam('workerId');
+    // If there is no worker id, the turker has not yet accepted the HIT.
+    if ('undefined' === typeof wid) return;
+    aid = turkGetParam('assignmentId');
+    hid = turkGetParam('hitId');
 
-     host = 'http://localhost:8080';
-     wid = 30;
-     aid = 2;
-     hid = 1;
+    //      host = 'http://localhost:8080';
+    //      wid = 30;
+    //      aid = 2;
+    //      hid = 1;
 
     claimId();
 
