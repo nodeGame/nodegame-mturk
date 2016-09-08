@@ -30,9 +30,6 @@ var logger;
 // Reference to the HITId and HIT object.
 var HITId, HIT;
 
-// Unique token for sensitive operations.
-var uniqueToken;
-
 // Bonus/Results approval operations.
 var bonusField, exitCodeField;
 var validateLevel, validateParams;
@@ -48,6 +45,9 @@ var errorsApproveReject, errorsBonus, errorsQualification;
 
 // QualificationType Id;
 var QualificationTypeId, QualificationType;
+
+// GrantBonus
+var bonusesToGrant, bonusesGranted, bonusesProcessed;
 
 // Commander.
 
@@ -212,6 +212,14 @@ vorpal
 
     .action(uploadResults);
 
+vorpal
+    .command('grantBonus',
+             'Grants bonuses as specified in results codes')
+
+    .option('-r --reason [reason]',
+            'Sets the reason for the bonus')
+
+    .action(grantAllBonuses);
 
 vorpal
     .command('show <what>', 'Prints out the requested info')
@@ -252,7 +260,7 @@ vorpal
             config.nInputCodes = inputCodesDb ? inputCodesDb.size() : 'NA';
             config.HITId = HITId || 'NA';
             config.QualificationTypeId = QualificationTypeId || 'NA';
-            config.token = uniqueToken || 'NA';
+            config.token = cfg.token || 'NA';
             config.api = api ? 'client created' : 'client **not** created';
             this.log(config);
         }
@@ -410,6 +418,7 @@ function loadInputCodes(args, cb) {
 }
 
 function uploadResults(args, cb) {
+    var uniqueToken;
 
     if (!api || !shapi) {
         logger.error('api not available. connect first');
@@ -506,6 +515,50 @@ function uploadResult(data, cb) {
     return true;
 }
 
+function grantAllBonuses(opts, cb) {
+    var waitForAllBonuses;
+
+    if (!api || !shapi) {
+        logger.error('api not available. connect first');
+        if (cb) cb();
+        return;
+    }
+
+    if (!resultsDb || !resultsDb.size()) {
+        winston.warn('no results found.');
+        if (cb) cb();
+        return true;
+    }
+
+    if (opts.reason &&
+        ('string' !== typeof opts.reason || opts.reason.trim() === '')) {
+        winston.error('grantBonus: --reason must be string or undefined. ' +
+                      'Found: ' + opts.reason);
+        if (cb) cb();
+        return
+    }
+
+    // TODO: fix.
+    bonusesGranted = 0;
+    waitForAllBonuses = function(err) {
+        if (!err) b
+    };
+    resultsDb.each(function(i) {
+        var myi;
+        if (opts.reason && i.Reason) {
+            myi = J.clone(i);
+        }
+        else {
+            myi = i;
+        }
+
+        if (opts.reason) myi.Reason = opts.reason;
+        grantBonus(i);
+    });
+
+    if (cb) cb();
+};
+
 function grantBonus(data, cb) {
     var params;
 
@@ -516,9 +569,10 @@ function grantBonus(data, cb) {
             Amount: data[cfg.bonusField],
             CurrencyCode: 'USD'
         },
-        UniqueRequestToken: uniqueToken
+        UniqueRequestToken: cfg.token
     };
     if (data.Reason) params.Reason = data.Reason;
+
     shapi.req('GrantBonus', params, function(res) {
         nBonusGiven++;
         totBonusPaid += data[cfg.bonusField];
@@ -792,6 +846,13 @@ function getQualificationType(args, cb) {
         }
         QualificationType = qualificationType[0];
         QualificationTypeId = QualificationType.QualificationTypeId;
+
+        if (resultsDb && resultsDb.size()) {
+            resultsDb.each(function(i) {
+                i.QualificationTypeId = QualificationTypeId;
+            });
+        }
+
         logger.info('retrieved QualificationType id: ' + QualificationTypeId +
                    ' ("' + QualificationType.Name + '")');
         if (cb) cb();
@@ -896,6 +957,9 @@ function getResultsDB() {
                 }
             }
         }
+
+        // Adding Qualification Type ID, if found.
+        if (QualificationTypeId) i.QualificationTypeId = QualificationTypeId;
 
         // We must validate WorkerId and Exit Code (if found in inputCodes db).
         if (inputCodesDb) {
