@@ -86,7 +86,7 @@ program
             'Activate sandbox mode')
 
     .option('-d, --dry',
-            'Dry-run: does not send requests to servers')
+            'Dry-run: does not actually send any request to server')
 
     .option('-q, --quiet',
             'No/minimal output printed to console');
