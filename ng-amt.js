@@ -567,11 +567,12 @@ function showUploadStats(args, cb) {
     resultsDb.each(function(item) {
         var b;
         b = item[cfg.bonusField];
+        console.log(b);
         if (b) {
             nBonus++;
             totBonusExpected += b;
-            if (b > maxBonus) maxBonus = b;
-            if (b < minBonus) minBonus = b;
+            if ('undefined' === typeof maxBonus || b > maxBonus) maxBonus = b;
+            if ('undefined' === typeof minBonus || b < minBonus) minBonus = b;
             sumSquaredBonus += Math.pow(b, 2);
         }
         if (item.Reject) totRejectExpected++;
@@ -580,7 +581,7 @@ function showUploadStats(args, cb) {
     });
 
     if (nBonus > 1 ) {
-        stdDevBonus = totBonusExpected -(Math.pow(sumSquaredBonus, 2) / nBonus);
+        stdDevBonus = sumSquaredBonus -(Math.pow(totBonusExpected, 2) / nBonus);
         stdDevBonus = Math.sqrt( stdDevBonus / (nBonus - 1) );
         meanBonus = (totBonusExpected / nBonus).toFixed(2);
     }
