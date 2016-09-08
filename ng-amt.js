@@ -126,9 +126,23 @@ vorpal
     .command('connect')
     .action(connect);
 
+
+
 vorpal
-    .command('get-last-HITId', 'Fetches and stores the last HIT id')
-    .action(getLastHITId);
+    .command('get <what>', 'Fetches and stores the requested info')
+    .autocomplete(['last-HITId', 'last-Qualification-Type'])
+    .action(function(args, cb) {
+        if (args.what === 'last-HITId') {
+            getLastHITId({}, cb);
+        }
+        else if (args.what === 'last-Qualification-Type') {
+            getQualificationType({}, cb);
+        }
+        else {
+            winston.warn('unknown "get" argument: ' + args.what);
+            cb();
+        }
+    });
 
 vorpal
     .command('extendHIT', 'Extends the HIT.')
@@ -567,7 +581,6 @@ function showUploadStats(args, cb) {
     resultsDb.each(function(item) {
         var b;
         b = item[cfg.bonusField];
-        console.log(b);
         if (b) {
             nBonus++;
             totBonusExpected += b;
