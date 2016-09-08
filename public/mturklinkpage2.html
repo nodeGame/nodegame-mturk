@@ -291,12 +291,10 @@
                 data: { h: hid, id: wid, a: aid },
                 crossDomain: true,
                 success: function(result) {
-                    debugger
                     displayLink(result.code);
                 },
                 error: function(error) {
-                    debugger
-                    showError(error);
+                    showError(error.err);
                 }
             });
         }
