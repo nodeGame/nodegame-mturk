@@ -24,11 +24,11 @@ module.exports =  {
     QualificationTypeId: 'YYY',
 
     // Turker is notified when a qualification is granted.
-    sendNotification: false,
+    SendNotification: false,
 
     // Unique token to send for sensitive operations to AMT server.
     // Default: 3000.
-    token: 1234
+    UniqueRequestToken: 1234
 
     // Dry-run (no request sent to server).
     dry: false,

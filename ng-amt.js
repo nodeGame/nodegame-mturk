@@ -47,7 +47,7 @@ var errorsApproveReject, errorsBonus, errorsQualification;
 var QualificationTypeId, QualificationType;
 
 // GrantBonus
-var bonusesToGrant, bonusesGranted, bonusesProcessed;
+var bonusGranted, bonusProcessed;
 
 // Commander.
 
@@ -139,7 +139,7 @@ vorpal
             getQualificationType({}, cb);
         }
         else {
-            winston.warn('unknown "get" argument: ' + args.what);
+            logger.warn('unknown "get" argument: ' + args.what);
             cb();
         }
     });
@@ -224,13 +224,15 @@ vorpal
     .command('grantBonus',
              'Grants bonuses as specified in results codes')
 
-    .option('-t, --token [token]',
+    .option('-t, --UniqueRequestToken [token]',
             'Unique token for one-time operations')
 
-    .option('-r --reason [reason]',
+    .option('-r --Reason [reason]',
             'Sets the reason for the bonus')
 
-    .action(grantAllBonuses);
+    .action(function(args, cb) {
+        grantAllBonuses(args.options, cb);
+    });
 
 vorpal
     .command('assignQualification',
@@ -260,7 +262,7 @@ vorpal
 
         if (args.what === 'results') {
             if (!resultsDb || !resultsDb.size()) {
-                winston.error('no results to show.');
+                logger.error('no results to show.');
             }
             else {
                 idx = args.options.position || 0;
@@ -269,7 +271,7 @@ vorpal
         }
         else if (args.what === 'inputCodes') {
             if (!inputCodesDb || !inputCodesDb.size()) {
-                winston.error('no input codes to show.');
+                logger.error('no input codes to show.');
             }
             else {
                 idx = args.options.position || 0;
@@ -294,7 +296,7 @@ vorpal
             this.log(config);
         }
         else {
-            winston.warn('unknown "show" argument: ' + args.what);
+            logger.warn('unknown "show" argument: ' + args.what);
         }
         cb();
     });
@@ -479,7 +481,7 @@ function assignAllQualifications(args, cb) {
         if ('string' !== typeof args.QualificationTypeId ||
             args.QualificationTypeId.trim() === '') {
 
-            winston.error('--QualificationTypeId must be a non-empty string. ' +
+            logger.error('--QualificationTypeId must be a non-empty string. ' +
                           'Found: ' + args.QualificationTypeId);
             if (cb) cb();
             return;
@@ -487,7 +489,7 @@ function assignAllQualifications(args, cb) {
     }
     else {
         if (!cfg.QualificationTypeId) {
-            winston.warn('no --QualificationTypeId and no value in ' +
+            logger.warn('no --QualificationTypeId and no value in ' +
                          'config. Will try to use value from results code.');
         }
         else {
@@ -499,7 +501,7 @@ function assignAllQualifications(args, cb) {
     if (args.IntegerValue) {
         res = J.isInt(args.IntegerValue, -1);
         if (res === false) {
-            winston.error('--IntegerValue must be a non-negative integer. ' +
+            logger.error('--IntegerValue must be a non-negative integer. ' +
                           'Found: ' + args.IntegerValue);
             if (cb) cb();
             return;
@@ -508,7 +510,7 @@ function assignAllQualifications(args, cb) {
     }
     else {
         if ('undefined' === typeof cfg.IntegerValue) {
-            winston.warn('no --IntegerValue and no value in config. Will try ' +
+            logger.warn('no --IntegerValue and no value in config. Will try ' +
                          'to use value from results code or default.');
         }
         else {
@@ -556,13 +558,14 @@ function assignAllQualifications(args, cb) {
 
 function assignQualification(data, cb, args) {
     var qid, params, err;
+    args = args || {};
 
     // Qualification.
     qid = args.QualificationTypeId || data.QualificationTypeId;
 
     if (!qid) {
         err = 'no QualificationTypeId found. WorkerId: ' + data.WorkerId
-        winston.error(err);
+        logger.error(err);
         if (cb) cb(err);
         return;
     }
@@ -720,47 +723,67 @@ function uploadResult(data, cb, options) {
     return true;
 }
 
-function grantAllBonuses(opts, cb) {
-    var uniqueToken;
+function grantAllBonuses(args, cb) {
+    var uniqueToken, res;
 
     // Check API and DB.
     if (!checkAPIandDB(cb)) return;
 
-    if (opts.reason &&
-        ('string' !== typeof opts.reason || opts.reason.trim() === '')) {
-        winston.error('grantBonus: --reason must be string or undefined. ' +
-                      'Found: ' + opts.reason);
+    if (args.Reason &&
+        ('string' !== typeof args.Reason || args.Reason.trim() === '')) {
+        logger.error('--Reason must be non-empty string or undefined. ' +
+                      'Found: ' + args.Reason);
         if (cb) cb();
         return
     }
 
-    uniqueToken = opts.token || cfg.token;
-    if ('number' !== typeof uniqueToken || uniqueToken === 0) {
-        logger.error('unique token is invalid. Found: ' + uniqueToken);
-        if (cb) cb();
-        return;
+    if ('undefined' !== typeof args.UniqueRequestToken) {
+        res = J.isInt(args.UniqueRequestToken, 0);
+        if (res === false) {
+            logger.error('--UniqueRequestToken must be a positive integer. ' +
+                          'Found: ' + args.UniqueRequestToken);
+            if (cb) cb();
+            return;
+        }
+        args.UniqueRequestToken = res;
+    }
+    else {
+        if ('undefined' === typeof cfg.UniqueRequestToken) {
+            logger.warn('no --UniqueRequestToken and no value in config. ' +
+                        'Will try to use value from results code.');
+        }
+        else {
+            args.IntegerValue = cfg.IntegerValue;
+        }
     }
 
+    nBonusGiven = 0;
+    totBonusPaid = 0;
     bonusProcessed = 0;
-    bonusesGranted = 0;
 
-    resultsDb.each(function(i, cb) {
-        var myi;
-        myi = J.clone(i);
-        if (opts.reason) myi.Reason = opts.reason;
-        myi.token = uniqueToken;
-        grantBonus(myi);
-    }, function(err) {
+    errorsBonus = [];
+
+    resultsDb.each(grantBonus, function(err) {
         if (++bonusProcessed >= totResults) {
-            showUploadStats(undefined, cb);
+            showUploadStats({ bonus: true }, cb);
         }
-    });
+    }, args);
 
-    if (cb) cb();
+    return true;
 };
 
-function grantBonus(data, cb) {
-    var params;
+function grantBonus(data, cb, args) {
+    var params, reason, uniqueToken, err;
+    args = args || {};
+
+    reason = args.Reason || data.Reason;
+    if ('string' !== typeof reason) {
+        err = 'invalid or missing Reason for WorkerId: ' + data.WorkerId +
+            '. Found: ' + reason;
+        logger.error(err);
+        if (cb) cb(err);
+        return;
+    }
 
     params = {
         WorkerId: data.WorkerId,
@@ -769,9 +792,12 @@ function grantBonus(data, cb) {
             Amount: data[cfg.bonusField],
             CurrencyCode: 'USD'
         },
-        UniqueRequestToken: cfg.token
+        Reason: reason
     };
-    if (data.Reason) params.Reason = data.Reason;
+
+    uniqueToken = args.UniqueRequestToken || data.UniqueRequestToken;
+
+    if (uniqueToken) params.UniqueRequestToken = uniqueToken;
 
     shapi.req('GrantBonus', params, function(res) {
         nBonusGiven++;
@@ -793,7 +819,7 @@ function showUploadStats(args, cb) {
     var nBonus, maxBonus, minBonus, meanBonus, stdDevBonus, sumSquaredBonus;
 
     if (!resultsDb || !resultsDb.size()) {
-        winston.warn('no results found.');
+        logger.warn('no results found.');
         if (cb) cb();
         return true;
     }
@@ -836,62 +862,62 @@ function showUploadStats(args, cb) {
             meanBonus = maxBonus;
         }
 
-        winston.info('results: ' + totResults || 0);
-        winston.info('to approve: ' + totApproveExpected);
-        winston.info('to reject: ' + totRejectExpected);
-        winston.info('bonuses: ' + nBonus);
+        logger.info('results: ' + totResults || 0);
+        logger.info('to approve: ' + totApproveExpected);
+        logger.info('to reject: ' + totRejectExpected);
+        logger.info('bonuses: ' + nBonus);
         if (nBonus > 0) {
-            winston.info('bonuses tot: ' + totBonusExpected);
+            logger.info('bonuses tot: ' + totBonusExpected);
             if (nBonus > 1) {
-                winston.info('bonuses mean: ' + meanBonus);
-                winston.info('bonuses min: ' + minBonus);
-                winston.info('bonuses max: ' + maxBonus);
-                winston.info('bonuses stddev: ' + stdDevBonus);
+                logger.info('bonuses mean: ' + meanBonus);
+                logger.info('bonuses min: ' + minBonus);
+                logger.info('bonuses max: ' + maxBonus);
+                logger.info('bonuses stddev: ' + stdDevBonus);
             }
         }
 
 
         if ('number' !== typeof nProcessed) {
-            winston.warn('results not yet uploaded to amt.');
+            logger.warn('results not yet uploaded to amt.');
             if (cb) cb();
             return true;
         }
 
-        winston.info('results processed: ' + nProcessed + '/' + totResults);
-        winston.info('approved: ' + nApproved);
-        winston.info('rejected: ' + nRejected);
-        winston.info('bonuses: ' + nBonusGiven +
+        logger.info('results processed: ' + nProcessed + '/' + totResults);
+        logger.info('approved: ' + nApproved);
+        logger.info('rejected: ' + nRejected);
+        logger.info('bonuses: ' + nBonusGiven +
                      ' (paid: ' + (totBonusPaid || 0) + ')');
 
         if (errorsApproveReject && errorsApproveReject.length) {
             err = true;
-            winston.error('approve/reject failed: ' +
+            logger.error('approve/reject failed: ' +
                           errorsApproveReject.length);
         }
         if (errorsBonus && errorsBonus.length) {
             err = true;
-            winston.error('bonuses failed: ' + errorsBonus.length);
+            logger.error('bonuses failed: ' + errorsBonus.length);
         }
     }
 
     if (args.all || args.qualification) {
-        winston.info('qualifications: ' + totQualificationExpected);
+        logger.info('qualifications: ' + totQualificationExpected);
 
         if ('number' !== typeof nProcessed) {
-            winston.warn('results not yet uploaded to amt.');
+            logger.warn('results not yet uploaded to amt.');
             if (cb) cb();
             return true;
         }
-        winston.info('qualifications given: ' + nQualificationGiven);
+        logger.info('qualifications given: ' + nQualificationGiven);
         if (errorsQualification && errorsQualification.length) {
             err = true;
-            winston.error('qualifications failed: ' +
+            logger.error('qualifications failed: ' +
                           errorsQualification.length);
         }
     }
 
     if (err) {
-    // winston.warn('type showErrors to have more details about the errors');
+    // logger.warn('type showErrors to have more details about the errors');
     }
     if (cb) cb();
     return true;
@@ -1019,7 +1045,7 @@ function connect(args, cb) {
 
     }).catch(function(err) {
         logger.err('failed.');
-        winston.error(err);
+        logger.error(err);
         if (cb) cb();
     });
 
@@ -1107,6 +1133,16 @@ function getResultsDB() {
         return i[cfg.exitCodeField];
     });
 
+    db.view('bonus', function(i) {
+        // Format already checked.
+        if (i[cfg.bonusField]) return i;
+    });
+
+    db.view('qualification', function(i) {
+        // Format already checked.
+        if (i.QualificationTypeId) return i;
+    });
+
     db.on('insert', function(i) {
         var str, code;
 
@@ -1179,7 +1215,6 @@ function getResultsDB() {
                 }
             }
         }
-
     });
 
     return db;
