@@ -55,19 +55,19 @@ program
     .version(version)
 
      // Specify a configuration file (other inline-options are mixed-in.)
-    .option('-C, --config [confFile]',
+    .option('-C, --config <confFile>',
             'Specifies a configuration file')
 
     .option('-c, --connect',
             'Opens the connection with Mturk Server')
 
-    .option('-L, --lastHITId [lastHITId]',
+    .option('-L, --lastHITId',
             'Fetches the last HIT id by requester')
 
-    .option('-r, --resultsFile [resultsFile]',
+    .option('-r, --resultsFile <resultsFile>',
             'Path to a codes file with Exit and Access Codes')
 
-    .option('-i, --inputCodesFile [inputCodesFile]',
+    .option('-i, --inputCodesFile <inputCodesFile>',
             'Path to a codes file with Exit and Access Codes')
 
 //    .option('-T, --hitTitle [hitTitle]',
@@ -125,7 +125,6 @@ var vorpal = require('vorpal')();
 vorpal
     .command('connect')
     .action(connect);
-
 
 
 vorpal
@@ -204,21 +203,32 @@ vorpal
     .command('uploadResults',
              'Uploads the results to AMT server (approval+bonus+qualification)')
 
-    .option('-t, --token [token]',
+    .option('-f, --RequesterFeedback <feedback>',
+            'Optional requester feedback for the worker')
+
+    .option('-q, --doQualification',
+            'Also assign the qualification, if specified or found')
+
+    .option('-Q, --QualificationTypeId',
+            'Sets the qualification type id (overwrites previous values)')
+
+    .option('-i, --IntegerValue',
+            'Sets the integer value for the qualification (AMT default = 1)')
+
+    .option('-n --SendNotification',
+            'Sends a notification about qualification (AMT default = true')
+
+    .option('-b, --doBonus', 'Also grant bonus, if found')
+
+    .option('-t, --UniqueRequestToken [token]',
             'Unique token for one-time operations')
 
-    .option('-q, --qualificationId [qualificationTypeId]',
-            'Assigns also a qualification')
-
-    .option('-b, --bonus', 'Also grant bonus, if found')
-
-    .option('-r --reason [reason]',
+    .option('-r --Reason [reason]',
             'Sets the reason for the bonus')
 
-    .option('-q, --qualification [integerValue]',
-            'Also assigns qualification, if found')
-
-    .action(uploadResults);
+    .action(function(args, cb) {
+        uploadResults(args.options, cb);
+    });
 
 vorpal
     .command('grantBonus',
@@ -342,6 +352,12 @@ else {
 ////////////
 
 
+/**
+ * ### loadResults
+ *
+ *
+ *
+ */
 function loadResults(args, cb) {
 
     // Checking options.
@@ -409,6 +425,12 @@ function loadResults(args, cb) {
     return true;
 }
 
+/**
+ * ### loadInputCodes
+ *
+ *
+ *
+ */
 function loadInputCodes(args, cb) {
 
     // Input Codes.
@@ -454,8 +476,10 @@ function loadInputCodes(args, cb) {
  *
  *
  */
-function checkAPIandDB(cb, opts) {
-    opts = J.mixin({ api: true, results : true }, opts);
+function checkAPIandDB(cb, options) {
+    var opts;
+    opts = { api: true, results : true };
+    J.mixin(opts, options);
 
     if (opts.api && (!api || !shapi)) {
         logger.error('api not available. connect first');
@@ -484,52 +508,8 @@ function assignAllQualifications(args, cb) {
     // Check API and DB.
     if (!checkAPIandDB(cb)) return;
 
-    // QualificationTypeId.
-    if (args.QualificationTypeId) {
-        if ('string' !== typeof args.QualificationTypeId ||
-            args.QualificationTypeId.trim() === '') {
-
-            logger.error('--QualificationTypeId must be a non-empty string. ' +
-                          'Found: ' + args.QualificationTypeId);
-            if (cb) cb();
-            return;
-        }
-    }
-    else {
-        if (!cfg.QualificationTypeId) {
-            logger.warn('no --QualificationTypeId and no value in ' +
-                         'config. Will try to use value from results code.');
-        }
-        else {
-            args.QualificationTypeId = cfg.QualificationTypeId;
-        }
-    }
-
-    // IntegerValue.
-    if (args.IntegerValue) {
-        res = J.isInt(args.IntegerValue, -1);
-        if (res === false) {
-            logger.error('--IntegerValue must be a non-negative integer. ' +
-                          'Found: ' + args.IntegerValue);
-            if (cb) cb();
-            return;
-        }
-        args.IntegerValue = res;
-    }
-    else {
-        if ('undefined' === typeof cfg.IntegerValue) {
-            logger.warn('no --IntegerValue and no value in config. Will try ' +
-                         'to use value from results code or default.');
-        }
-        else {
-            args.IntegerValue = cfg.IntegerValue;
-        }
-    }
-
-    // SendNotification.
-    if (!args.SendNotification) {
-        if (cfg.SendNotification) args.SendNotification = cfg.SendNotification;
-    }
+    res = prepareArgs('assignQualification', args, cb);
+    if (!res) return;
 
 // if (nQualificationGiven || errorsQualification){
 //     that = this;
@@ -550,9 +530,7 @@ function assignAllQualifications(args, cb) {
 //   });
 // }
 
-    nQualificationGiven = 0;
-    nProcessed = 0;
-    errorsQualification = [];
+    resetGlobals('assignQualification');
 
     // Do it!
     resultsDb.each(assignQualification, function(err) {
@@ -564,6 +542,12 @@ function assignAllQualifications(args, cb) {
     return true;
 }
 
+/**
+ * ### assignQualification
+ *
+ *
+ *
+ */
 function assignQualification(data, cb, args) {
     var qid, params, err;
     args = args || {};
@@ -615,53 +599,82 @@ function assignQualification(data, cb, args) {
  *
  */
 function uploadResults(args, cb) {
-    var uniqueToken;
-    var options;
+    var res, options;
 
     // Check API and DB.
     if (!checkAPIandDB(cb)) return;
+    // Args.
+    if (!prepareArgs('uploadResult', args, cb)) return;
 
-    // Check reason.
-    if (args.reason &&
-        ('string' !== typeof args.reason || args.reason.trim() === '')) {
+    // Do bonus checkings.
 
-        logger.error('--reason must be a non-empty string. Found: ' +
-                     args.reason);
-        if (cb) cb();
-        return;
+    if (!args.doBonus) {
+        if (args.Reason) {
+            logger.error('--Reason is set, but --doBonus is not. Aborting.');
+            if (cb) cb();
+            return;
+        }
+
+        if (args.UniqueTokenRequest) {
+            logger.error('--UniqueTokenRequest is set, but ' +
+                         '--doBonus is not. Aborting.');
+            if (cb) cb();
+            return;
+        }
+    }
+    else {
+        res = prepareArgs('grantBonus', args, cb);
+        if (!res) return;
     }
 
-    // Bonus should be set if reason is.
-    if (args.reason && !args.bonus) {
-        logger.error('--reason is set, but --bonus is not. Aborting command.');
-        if (cb) cb();
-        return;
+    // Do qualification checkings.
+
+    if (!args.doQualification) {
+        if (args.QualificationTypeId) {
+
+            logger.error('--QualificationTypeId  is set, ' +
+                         'but --doQualification is not. Aborting.');
+            if (cb) cb();
+            return;
+        }
+        if (args.IntegerValue) {
+
+            logger.error('--IntegerValue  is set, ' +
+                         'but --doQualification is not. Aborting.');
+            if (cb) cb();
+            return;
+        }
+        if (args.SendNotification) {
+
+            logger.error('--SendNotification  is set, ' +
+                         'but --doQualification is not. Aborting.');
+            if (cb) cb();
+            return;
+        }
+    }
+    else {
+        res = prepareArgs('assignQualification', args, cb);
+        if (!res) return;
     }
 
-    nApproved = 0;
-    nRejected = 0;
-    nBonusGiven = 0;
-    totBonusPaid = 0;
-    nQualificationGiven = 0;
-    nProcessed = 0;
+    // All checkings done. Prepare global variables.
 
-    errorsApproveReject = [];
-    errorsBonus = [];
-    errorsQualification = [];
+    resetGlobals('uploadResult');
+    options = { 'uploadResult': true };
 
-    uniqueToken = args.token || cfg.token;
-    if ('number' !== typeof uniqueToken || uniqueToken === 0) {
-        logger.error('unique token is invalid. Found: ' + uniqueToken);
-        if (cb) cb();
-        return;
+    if (args.doBonus) {
+        resetGlobals('grantBonus');
+        options.grantBonus = true;
     }
-
-    logger.info('unique token: ' + uniqueToken);
+    if (args.doQualification) {
+        resetGlobals('assignQualification');
+        options.assignQualification = true;
+    }
 
     // Do it!
     resultsDb.each(uploadResult, function(err) {
         if (++nProcessed >= totResults) {
-            showUploadStats(undefined, cb);
+            showUploadStats(options, cb);
         }
     }, args);
 
@@ -674,8 +687,8 @@ function uploadResults(args, cb) {
  *
  *
  */
-function uploadResult(data, cb, options) {
-    var id, wid, op, params;
+function uploadResult(data, cb, args) {
+    var id, wid, op, params, feedback;
 
     id = data.id;
     wid = data.WorkerId;
@@ -691,35 +704,28 @@ function uploadResult(data, cb, options) {
         op = 'Approve';
     }
 
-    params = {
-        AssignmentId: data.AssignmentId
-    };
+    params = { AssignmentId: data.AssignmentId };
 
-    if (params.RequesterFeedback) {
-        params.RequesterFeedback = data.RequesterFeedback;
-    }
-
-    console.log(params);
-    return;
-
-    // No bonus granting if assignment is rejected.
+    feedback = args.RequesterFeedback || data.RequesterFeedback;
+    if (feedback) params.RequesterFeedback = feedback;
 
     shapi.req(op + 'Assignment', params, function() {
+        // No bonus granting if assignment is rejected.
         if (op === 'Reject') {
             nRejected++;
         }
         else {
             nApproved++;
 
-            if (options.bonus && data[cfg.bonusField]) {
+            if (args.bonus && data[cfg.bonusField]) {
                 grantBonus(data, function() {
-                    if (options.qualification && data.QualificationTypeId) {
+                    if (args.qualification && data.QualificationTypeId) {
                         assignQualification(data, cb);
                     }
                     else if (cb) cb();
                 });
             }
-            else if (options.qualification && data.QualificationTypeId) {
+            else if (args.qualification && data.QualificationTypeId) {
                 assignQualification(data, cb);
             }
             else {
@@ -734,44 +740,162 @@ function uploadResult(data, cb, options) {
     return true;
 }
 
-function grantAllBonuses(args, cb) {
-    var uniqueToken, res;
+/**
+ * ### prepareArgs
+ *
+ *
+ *
+ */
+function prepareArgs(command, args, cb) {
+    var res;
 
-    // Check API and DB.
-    if (!checkAPIandDB(cb)) return;
+    if (command === 'grantBonus') {
 
-    if (args.Reason &&
-        ('string' !== typeof args.Reason || args.Reason.trim() === '')) {
-        logger.error('--Reason must be non-empty string or undefined. ' +
-                      'Found: ' + args.Reason);
-        if (cb) cb();
-        return
+        if (args.Reason &&
+            ('string' !== typeof args.Reason || args.Reason.trim() === '')) {
+            logger.error('--Reason must be non-empty string or undefined. ' +
+                         'Found: ' + args.Reason);
+            if (cb) cb();
+            return
+        }
+
+        if ('undefined' !== typeof args.UniqueRequestToken) {
+            res = J.isInt(args.UniqueRequestToken, 0);
+            if (res === false) {
+                logger.error('--UniqueRequestToken must be a positive ' +
+                             'integer. Found: ' + args.UniqueRequestToken);
+                if (cb) cb();
+                return;
+            }
+            args.UniqueRequestToken = res;
+        }
+        else {
+            if ('undefined' === typeof cfg.UniqueRequestToken) {
+                logger.warn('no --UniqueRequestToken and no value in config. ' +
+                            'Will try to use value from results code.');
+            }
+            else {
+                args.IntegerValue = cfg.IntegerValue;
+            }
+        }
     }
 
-    if ('undefined' !== typeof args.UniqueRequestToken) {
-        res = J.isInt(args.UniqueRequestToken, 0);
-        if (res === false) {
-            logger.error('--UniqueRequestToken must be a positive integer. ' +
-                          'Found: ' + args.UniqueRequestToken);
+    else if (command === 'assignQualification') {
+
+        // QualificationTypeId.
+        if (args.QualificationTypeId) {
+            if ('string' !== typeof args.QualificationTypeId ||
+                args.QualificationTypeId.trim() === '') {
+
+                logger.error('--QualificationTypeId must be a non-empty ' +
+                             'string. Found: ' + args.QualificationTypeId);
+                if (cb) cb();
+                return;
+            }
+        }
+        else {
+            if (!cfg.QualificationTypeId) {
+                logger.warn('no --QualificationTypeId and no value in ' +
+                            'config. Will try to use value from results code.');
+            }
+            else {
+                args.QualificationTypeId = cfg.QualificationTypeId;
+            }
+        }
+
+        // IntegerValue.
+        if (args.IntegerValue) {
+            res = J.isInt(args.IntegerValue, -1);
+            if (res === false) {
+                logger.error('--IntegerValue must be a non-negative integer. ' +
+                             'Found: ' + args.IntegerValue);
+                if (cb) cb();
+                return;
+            }
+            args.IntegerValue = res;
+        }
+        else {
+            if ('undefined' === typeof cfg.IntegerValue) {
+                logger.warn('no --IntegerValue and no value in config. Will ' +
+                            'try to use value from results code.');
+            }
+            else {
+                args.IntegerValue = cfg.IntegerValue;
+            }
+        }
+
+        // SendNotification.
+        if (!args.SendNotification && cfg.SendNotification) {
+            args.SendNotification = cfg.SendNotification;
+        }
+    }
+
+    else if (command === 'uploadResult') {
+
+        if (args.RequesterFeedback &&
+            ('string' !== typeof args.RequesterFeedback ||
+             args.RequesterFeedback.trim() === '')) {
+
+            logger.error('--RequesterFeedback must be a non-empty ' +
+                         'string. Found: ' + args.RequesterFeedback);
             if (cb) cb();
             return;
         }
-        args.UniqueRequestToken = res;
+
     }
+
+    // Unknown.
     else {
-        if ('undefined' === typeof cfg.UniqueRequestToken) {
-            logger.warn('no --UniqueRequestToken and no value in config. ' +
-                        'Will try to use value from results code.');
-        }
-        else {
-            args.IntegerValue = cfg.IntegerValue;
-        }
+        winston.err('prepareArgs: unknown command: ' + command);
+        if (cb) cb();
+        return;
     }
+
+    return true;
+}
+
+/**
+ * ### resetGlobals
+ *
+ *
+ *
+ */
+function resetGlobals(command) {
+
+    // Result.
+    if (command === 'uploadResult') {
+        nApproved = 0;
+        nRejected = 0;
+        nProcessed = 0;
+        errorsApproveReject = [];
+    }
+
+    // Bonus.
+    else if (command === 'grantBonus') {
+        nBonusGiven = 0;
+        totBonusPaid = 0;
+        errorsBonus = [];
+    }
+
+    // Qualification.
+    else if (command === 'assignQualification') {
+        nQualificationGiven = 0;
+        errorsQualification = [];
+    }
+
+}
+
+function grantAllBonuses(args, cb) {
+    var uniqueToken;
+
+    // Check API and DB.
+    if (!checkAPIandDB(cb)) return;
+    // Check args.
+    if (!prepareArgs('grantBonus', args, cb)) return;
 
     nBonusGiven = 0;
     totBonusPaid = 0;
     bonusProcessed = 0;
-
     errorsBonus = [];
 
     resultsDb.each(grantBonus, function(err) {
@@ -835,6 +959,8 @@ function showUploadStats(args, cb) {
 
     var nBonus, maxBonus, minBonus, meanBonus, stdDevBonus, sumSquaredBonus;
 
+    // Check DB.
+    if (!checkAPIandDB(cb, { api: false })) return;
 
     args = args || { all: true };
 
@@ -844,7 +970,7 @@ function showUploadStats(args, cb) {
     if (args.all || args.result) {
         totApproveExpected = resultsDb.status.approve ?
             resultsDb.status.approve.size() : 0;
-        totRejectExpected = resultsDB.status.reject ?
+        totRejectExpected = resultsDb.status.reject ?
             resultsDb.status.reject.size() : 0;
 
         logger.info('to approve: ' + totApproveExpected);
@@ -1160,7 +1286,7 @@ function getResultsDB() {
     var db;
 
     resultsErrors = [];
-    db = new NDDB();
+    db = new NDDB({ update: { indexes: true } });
 
     db.index('id', function(i) {
         return i.id;
