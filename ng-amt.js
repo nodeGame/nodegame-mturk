@@ -41,24 +41,23 @@ var QualificationTypeId, QualificationType;
 var bonusGranted, bonusProcessed;
 
 // Commander.
+/////////////
+
 var program;
 program = require('./lib/program');
 program.parse(process.argv);
 
 // Winston logger.
+//////////////////
+
 var logger;
 logger = require('./lib/logger')(program);
-
-return;
 
 // Load and check config.
 /////////////////////////
 
-var shared = require('./lib/shared');
-
-var cfg = require('./lib/config')(program.config);
-
-
+var cfg;
+cfg = require('./lib/config')(program);
 if (!cfg) return;
 
 // VORPAL COMMANDS
@@ -1250,145 +1249,4 @@ function getLastHITId(args, cb) {
                     HIT.Title + '")');
         if (cb) cb();
     });
-}
-
-/**
- * ### getInputCodesDB
- *
- *
- *
- */
-function getInputCodesDB() {
-    var db;
-
-    inputCodesErrors = [];
-    db = new NDDB();
-
-    db.on('insert', function(code) {
-        if (!!code.WorkerId) {
-            // Add to array, might dump to file in the future.
-            inputCodesErrors.push('missing WorkerId');
-            logger.error('invalid input code entry: ' + code);
-        }
-    });
-    db.index('id', function(i) { return i.WorkerId; });
-    return db;
-}
-
-/**
- * ### getResultsDB
- *
- *
- *
- */
-function getResultsDB() {
-    var db;
-
-    resultsErrors = [];
-    db = new NDDB({ update: { indexes: true } });
-
-    db.index('id', function(i) {
-        return i.id;
-    });
-    db.index('wid', function(i) {
-        return i.WorkerId;
-    });
-    db.index('aid', function(i) {
-        return i.AssignmentId;
-    });
-    db.index('exit', function(i) {
-        return i[cfg.exitCodeField];
-    });
-
-    db.view('bonus', function(i) {
-        // Format already checked.
-        if (i[cfg.bonusField]) return i;
-    });
-
-    db.view('qualification', function(i) {
-        // Format already checked.
-        if (i.QualificationTypeId) return i;
-    });
-
-    db.hash('status', function(i) {
-        if (i.Approve) return 'approve';
-        if (i.Reject) return 'reject';
-        return 'none';
-    });
-
-    db.on('insert', function(i) {
-        var str, code;
-
-        // Check no duplicates.
-        if (this.id.get(i.id)) {
-            str = 'duplicate code id ' + i.id;
-            logger.error(str);
-            resultsErrors.push(str);
-        }
-        if (this.wid.get(i.WorkerId)) {
-            str = 'duplicate WorkerId ' + i.WorkerId;
-            logger.error(str);
-            resultsErrors.push(str);
-        }
-        if (this.exit.get(i[cfg.exitCodeField])) {
-            str = 'duplicate ExitCode ' + i[cfg.exitCodeField];
-            logger.error(str);
-            resultsErrors.push(str);
-        }
-        if (this.aid.get(i.AssignmentId)) {
-            str = 'duplicate AssignmentId ' + i.AssignmentId;
-            logger.error(str);
-            resultsErrors.push(str);
-        }
-
-        if (shared.validateLevel) {
-            // Standard validation.
-            str = shared.validateCode(i, validateParams);
-            if (str) {
-                resultsErrors.push(str);
-                logger.error(str);
-            }
-            // Custom validation.
-            else if ('function' === typeof shared.validateResult) {
-                str = shared.validateResult(i, validateParams);
-                if ('string' === typeof str) {
-                    resultsErrors.push(str);
-                    logger.error(str);
-                }
-            }
-        }
-
-        // Adding Qualification Type ID, if found.
-        if (QualificationTypeId) i.QualificationTypeId = QualificationTypeId;
-
-        // We must validate WorkerId and Exit Code (if found in inputCodes db).
-        if (inputCodesDb) {
-            if (i.id) {
-                code = inputCodesDb.id.get(i.id);
-                if (!code) {
-                    str = 'id not found in inputCodes db: ' + i.id;
-                    logger.warn(str);
-                    resultsErrors.push(str);
-                }
-            }
-
-            if (i[cfg.exitCodeField]) {
-                if (!code) code = inputCodesDb.exit.get(i[cfg.exitCodeField]);
-                if (!code) {
-                    str = 'ExitCode not found: ' + i[cfg.exitCodeField];
-                }
-                else if (i[cfg.exitCodeField] !== code.ExitCode) {
-                    str = 'ExitCodes do not match. WorkerId: ' + i.WorkerId +
-                        '. ExitCode: ' + i[cfg.exitCodeField] +
-                        ' (found) vs ' + code.ExitCode + ' (expected)';
-                }
-                if (str) {
-                    logger.error(str);
-                    resultsErrors.push(str);
-                }
-            }
-        }
-    });
-
-    return db;
 }
