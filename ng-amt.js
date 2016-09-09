@@ -129,16 +129,19 @@ vorpal
 
 vorpal
     .command('get <what>', 'Fetches and stores the requested info')
-    .autocomplete(['last-HITId', 'last-Qualification-Type'])
+    .autocomplete(['HITId', 'QualificationTypeId', 'AccountBalance'])
     .action(function(args, cb) {
-        if (args.what === 'last-HITId') {
+        if (args.what === 'HITId') {
             getLastHITId({}, cb);
         }
-        else if (args.what === 'last-Qualification-Type') {
+        else if (args.what === 'QualificationTypeID') {
             getQualificationType({}, cb);
         }
-        else if (args.what === 'balance') {
-
+        else if (args.what === 'AccountBalance') {
+            getAccountBalance({}, function(balance) {
+                logger.info('Your balance is: ' + balance.FormattedPrice);
+                cb();
+            });
         }
         else {
             logger.warn('unknown "get" argument: ' + args.what);
@@ -354,6 +357,16 @@ else {
 // FUNCTIONS
 ////////////
 
+
+function getAccountBalance(args, cb) {
+    if (!checkAPIandDB(cb, { results: false })) return;
+    shapi.req('GetAccountBalance', {}, function(res) {
+        if (cb) cb(res.GetAccountBalanceResult[0].AvailableBalance);
+    }, function(err) {
+        console.log(err);
+        if (cb) cb();
+    });
+}
 
 /**
  * ### loadResults
