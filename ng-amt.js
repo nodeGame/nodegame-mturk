@@ -448,16 +448,24 @@ function loadInputCodes(args, cb) {
     return true;
 }
 
-function checkAPIandDB(cb) {
-    if (!api || !shapi) {
+/**
+ * ### checkAPIandDB
+ *
+ *
+ *
+ */
+function checkAPIandDB(cb, opts) {
+    opts = J.mixin({ api: true, results : true }, opts);
+
+    if (opts.api && (!api || !shapi)) {
         logger.error('api not available. connect first');
         if (cb) cb();
         return;
     }
 
     // Results db must exists and not be empty.
-    if (!resultsDb || !resultsDb.size()) {
-        logger.error('no results found');
+    if (opts.results && (!resultsDb || !resultsDb.size())) {
+        logger.error('no results found. load a results file first.');
         if (cb) cb();
         return;
     }
@@ -691,6 +699,9 @@ function uploadResult(data, cb, options) {
         params.RequesterFeedback = data.RequesterFeedback;
     }
 
+    console.log(params);
+    return;
+
     // No bonus granting if assignment is rejected.
 
     shapi.req(op + 'Assignment', params, function() {
@@ -809,6 +820,12 @@ function grantBonus(data, cb, args) {
     });
 }
 
+/**
+ * ### showUploadStats
+ *
+ *
+ *
+ */
 function showUploadStats(args, cb) {
     var err;
 
@@ -818,13 +835,38 @@ function showUploadStats(args, cb) {
 
     var nBonus, maxBonus, minBonus, meanBonus, stdDevBonus, sumSquaredBonus;
 
-    if (!resultsDb || !resultsDb.size()) {
-        logger.warn('no results found.');
-        if (cb) cb();
-        return true;
-    }
 
     args = args || { all: true };
+
+    logger.info('tot results: ' + totResults || 0);
+
+    // Approve / Reject.
+    if (args.all || args.result) {
+        totApproveExpected = resultsDb.status.approve ?
+            resultsDb.status.approve.size() : 0;
+        totRejectExpected = resultsDB.status.reject ?
+            resultsDb.status.reject.size() : 0;
+
+        logger.info('to approve: ' + totApproveExpected);
+        logger.info('to reject: ' + totRejectExpected);
+
+
+        if ('number' !== typeof nProcessed) {
+            logger.warn('results not yet uploaded to amt.');
+            if (cb) cb();
+            return true;
+        }
+
+        logger.info('results processed: ' + nProcessed + '/' + totResults);
+        logger.info('approved: ' + nApproved);
+        logger.info('rejected: ' + nRejected);
+
+        if (errorsApproveReject && errorsApproveReject.length) {
+            err = true;
+            logger.error('approve/reject failed: ' +
+                          errorsApproveReject.length);
+        }
+    }
 
     if (args.all || args.bonus) {
         totBonusExpected = 0;
@@ -887,12 +929,12 @@ function showUploadStats(args, cb) {
         logger.info('approved: ' + nApproved);
         logger.info('rejected: ' + nRejected);
         logger.info('bonuses: ' + nBonusGiven +
-                     ' (paid: ' + (totBonusPaid || 0) + ')');
+                    ' (paid: ' + (totBonusPaid || 0) + ')');
 
         if (errorsApproveReject && errorsApproveReject.length) {
             err = true;
             logger.error('approve/reject failed: ' +
-                          errorsApproveReject.length);
+                         errorsApproveReject.length);
         }
         if (errorsBonus && errorsBonus.length) {
             err = true;
@@ -1141,6 +1183,12 @@ function getResultsDB() {
     db.view('qualification', function(i) {
         // Format already checked.
         if (i.QualificationTypeId) return i;
+    });
+
+    db.hash('status', function(i) {
+        if (i.Approve) return 'approve';
+        if (i.Reject) return 'reject';
+        return 'none';
     });
 
     db.on('insert', function(i) {
