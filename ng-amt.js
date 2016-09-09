@@ -128,28 +128,6 @@ vorpal
 
 
 vorpal
-    .command('get <what>', 'Fetches and stores the requested info')
-    .autocomplete(['HITId', 'QualificationTypeId', 'AccountBalance'])
-    .action(function(args, cb) {
-        if (args.what === 'HITId') {
-            getLastHITId({}, cb);
-        }
-        else if (args.what === 'QualificationTypeID') {
-            getQualificationType({}, cb);
-        }
-        else if (args.what === 'AccountBalance') {
-            getAccountBalance({}, function(balance) {
-                logger.info('Your balance is: ' + balance.FormattedPrice);
-                cb();
-            });
-        }
-        else {
-            logger.warn('unknown "get" argument: ' + args.what);
-            cb();
-        }
-    });
-
-vorpal
     .command('extendHIT', 'Extends the HIT.')
     .option('-a, --assignments [n]',
             'Adds n assigments to the HIT')
@@ -267,16 +245,37 @@ vorpal
         assignAllQualifications(args.options, cb);
     });
 
+vorpal
+    .command('get <what>', 'Fetches and stores the requested info')
+    .autocomplete([ 'HITId', 'QualificationTypeId', 'AccountBalance' ])
+    .action(function(args, cb) {
+        if (args.what === 'HITId') {
+            getLastHITId({}, cb);
+        }
+        else if (args.what === 'QualificationTypeId') {
+            getQualificationType({}, cb);
+        }
+
+        else if (args.what === 'AccountBalance') {
+            showAvailableAccountBalance({}, cb);
+        }
+        else {
+            logger.warn('unknown "get" argument: ' + args.what);
+            cb();
+        }
+    });
 
 vorpal
     .command('show <what>', 'Prints out the requested info')
-    .autocomplete(['results', 'uploadStats', 'inputCodes', 'config' ])
-    .option('-p, --position [position]', 'Position of result|input code  in db')
+
+    .autocomplete(['Results', 'UploadStats', 'InputCodes', 'Config'])
+
+    .option('-p, --position [position]', 'Position of result|input code in db')
 
     .action(function(args, cb) {
         var idx, config;
 
-        if (args.what === 'results') {
+        if (args.what === 'Results') {
             if (!resultsDb || !resultsDb.size()) {
                 logger.error('no results to show.');
             }
@@ -285,7 +284,7 @@ vorpal
                 this.log(resultsDb.get(idx));
             }
         }
-        else if (args.what === 'inputCodes') {
+        else if (args.what === 'InputCodes') {
             if (!inputCodesDb || !inputCodesDb.size()) {
                 logger.error('no input codes to show.');
             }
@@ -295,11 +294,11 @@ vorpal
             }
         }
 
-        else if (args.what === 'uploadStats') {
+        else if (args.what === 'UploadStats') {
             showUploadStats();
         }
 
-        else if (args.what === 'config') {
+        else if (args.what === 'Config') {
             config = J.clone(cfg);
             config.resultsFile = resultsFile;
             config.inputCodesFile = inputCodesFile;
@@ -357,14 +356,23 @@ else {
 // FUNCTIONS
 ////////////
 
-
+/**
+ * ### getAccountBalance
+ *
+ *
+ *
+ */
 function getAccountBalance(args, cb) {
     if (!checkAPIandDB(cb, { results: false })) return;
     shapi.req('GetAccountBalance', {}, function(res) {
         if (cb) cb(res.GetAccountBalanceResult[0].AvailableBalance);
-    }, function(err) {
-        console.log(err);
-        if (cb) cb();
+    });
+}
+
+function showAvailableAccountBalance(args, cb) {
+    getAccountBalance({}, function(balance) {
+        logger.info('Your balance is: ' + balance.FormattedPrice);
+        cb();
     });
 }
 
@@ -686,6 +694,8 @@ function uploadResults(args, cb) {
         resetGlobals('assignQualification');
         options.assignQualification = true;
     }
+
+
 
     // Do it!
     resultsDb.each(uploadResult, function(err) {
