@@ -3,7 +3,7 @@
 "use strict";
 
 // General.
-var fs = require('fs');
+var fs = require('fs-extra');
 var path = require('path');
 var mturk = require('mturk-api');
 var _ = require('underscore');
@@ -210,16 +210,45 @@ vorpal
     .option('-q, --qualificationId [qualificationTypeId]',
             'Assigns also a qualification')
 
+    .option('-b, --bonus', 'Also grant bonus, if found')
+
+    .option('-r --reason [reason]',
+            'Sets the reason for the bonus')
+
+    .option('-q, --qualification [integerValue]',
+            'Also assigns qualification, if found')
+
     .action(uploadResults);
 
 vorpal
     .command('grantBonus',
              'Grants bonuses as specified in results codes')
 
+    .option('-t, --token [token]',
+            'Unique token for one-time operations')
+
     .option('-r --reason [reason]',
             'Sets the reason for the bonus')
 
     .action(grantAllBonuses);
+
+vorpal
+    .command('assignQualification',
+             'Assigns a Qualification to all results codes')
+
+    .option('-q --QualificationTypeId',
+             'Specify the ID of the qualification (overwrites previous values)')
+
+    .option('-i --IntegerValue [value]',
+             'Sets the integer value for the qualification (AMT default = 1)')
+
+    .option('-n --SendNotification',
+            'Sends a notification about qualification (AMT default = true')
+
+    .action(function(args, cb) {
+        assignAllQualifications(args.options, cb);
+    });
+
 
 vorpal
     .command('show <what>', 'Prints out the requested info')
@@ -259,7 +288,7 @@ vorpal
             config.nResults = resultsDb ? resultsDb.size() : 'NA';
             config.nInputCodes = inputCodesDb ? inputCodesDb.size() : 'NA';
             config.HITId = HITId || 'NA';
-            config.QualificationTypeId = QualificationTypeId || 'NA';
+            config.QualificationTypeId = cfg.QualificationTypeId || 'NA';
             config.token = cfg.token || 'NA';
             config.api = api ? 'client created' : 'client **not** created';
             this.log(config);
@@ -417,9 +446,7 @@ function loadInputCodes(args, cb) {
     return true;
 }
 
-function uploadResults(args, cb) {
-    var uniqueToken;
-
+function checkAPIandDB(cb) {
     if (!api || !shapi) {
         logger.error('api not available. connect first');
         if (cb) cb();
@@ -432,10 +459,178 @@ function uploadResults(args, cb) {
         if (cb) cb();
         return;
     }
+    return true;
+}
+
+/**
+ * ### assignAllQualifications
+ *
+ *
+ *
+ */
+function assignAllQualifications(args, cb) {
+    var res, that;
+
+    // Check API and DB.
+    if (!checkAPIandDB(cb)) return;
+
+    // QualificationTypeId.
+    if (args.QualificationTypeId) {
+        if ('string' !== typeof args.QualificationTypeId ||
+            args.QualificationTypeId.trim() === '') {
+
+            winston.error('--QualificationTypeId must be a non-empty string. ' +
+                          'Found: ' + args.QualificationTypeId);
+            if (cb) cb();
+            return;
+        }
+    }
+    else {
+        if (!cfg.QualificationTypeId) {
+            winston.warn('no --QualificationTypeId and no value in ' +
+                         'config. Will try to use value from results code.');
+        }
+        else {
+            args.QualificationTypeId = cfg.QualificationTypeId;
+        }
+    }
+
+    // IntegerValue.
+    if (args.IntegerValue) {
+        res = J.isInt(args.IntegerValue, -1);
+        if (res === false) {
+            winston.error('--IntegerValue must be a non-negative integer. ' +
+                          'Found: ' + args.IntegerValue);
+            if (cb) cb();
+            return;
+        }
+        args.IntegerValue = res;
+    }
+    else {
+        if ('undefined' === typeof cfg.IntegerValue) {
+            winston.warn('no --IntegerValue and no value in config. Will try ' +
+                         'to use value from results code or default.');
+        }
+        else {
+            args.IntegerValue = cfg.IntegerValue;
+        }
+    }
+
+    // SendNotification.
+    if (!args.SendNotification) {
+        if (cfg.SendNotification) args.SendNotification = cfg.SendNotification;
+    }
+
+// if (nQualificationGiven || errorsQualification){
+//     that = this;
+//     return this.prompt({
+//         type: 'confirm',
+//         name: 'continue',
+//     default: false,
+//       message: 'That sounds like a really bad idea. Continue?',
+//     }, function(result){
+//       if (!result.continue) {
+//         self.log('Good move.');
+//         cb();
+//       } else {
+//         self.log('Time to dust off that resume.');
+//         app.destroyDatabase(cb);
+//       }
+//     });
+//   });
+// }
+
+    nQualificationGiven = 0;
+    nProcessed = 0;
+    errorsQualification = [];
+
+    // Do it!
+    resultsDb.each(assignQualification, function(err) {
+        if (++nProcessed >= totResults) {
+            showUploadStats({ qualification: true }, cb);
+        }
+    }, args);
+
+    return true;
+}
+
+function assignQualification(data, cb, args) {
+    var qid, params, err;
+
+    // Qualification.
+    qid = args.QualificationTypeId || data.QualificationTypeId;
+
+    if (!qid) {
+        err = 'no QualificationTypeId found. WorkerId: ' + data.WorkerId
+        winston.error(err);
+        if (cb) cb(err);
+        return;
+    }
+
+    params = {
+        WorkerId: data.WorkerId,
+        QualificationTypeId: qid
+    };
+
+    if ('number' === typeof args.IntegerValue) {
+        params.IntegerValue = args.IntegerValue;
+    }
+    else {
+        params.IntegerValue = data.IntegerValue;
+    }
+
+    if ('undefined' !== typeof args.SendNotification) {
+        params.SendNotification = args.SendNotification;
+    }
+    else if ('undefined' !== typeof data.SendNotification) {
+        params.SendNotification = data.SendNotification;
+    }
+
+    shapi.req('AssignQualification', params, function(res) {
+        nQualificationGiven++;
+        if (cb) cb();
+    }, function (err) {
+        errorsQualification.push(err);
+        if (cb) cb(err);
+    });
+
+    return true;
+}
+
+/**
+ * ### uploadResults
+ *
+ *
+ *
+ */
+function uploadResults(args, cb) {
+    var uniqueToken;
+    var options;
+
+    // Check API and DB.
+    if (!checkAPIandDB(cb)) return;
+
+    // Check reason.
+    if (args.reason &&
+        ('string' !== typeof args.reason || args.reason.trim() === '')) {
+
+        logger.error('--reason must be a non-empty string. Found: ' +
+                     args.reason);
+        if (cb) cb();
+        return;
+    }
+
+    // Bonus should be set if reason is.
+    if (args.reason && !args.bonus) {
+        logger.error('--reason is set, but --bonus is not. Aborting command.');
+        if (cb) cb();
+        return;
+    }
 
     nApproved = 0;
     nRejected = 0;
     nBonusGiven = 0;
+    totBonusPaid = 0;
     nQualificationGiven = 0;
     nProcessed = 0;
 
@@ -457,12 +652,18 @@ function uploadResults(args, cb) {
         if (++nProcessed >= totResults) {
             showUploadStats(undefined, cb);
         }
-    });
+    }, args);
 
     return true;
 }
 
-function uploadResult(data, cb) {
+/**
+ * ### uploadResult
+ *
+ *
+ *
+ */
+function uploadResult(data, cb, options) {
     var id, wid, op, params;
 
     id = data.id;
@@ -495,16 +696,20 @@ function uploadResult(data, cb) {
         }
         else {
             nApproved++;
-            if (data[cfg.bonusField]) {
+
+            if (options.bonus && data[cfg.bonusField]) {
                 grantBonus(data, function() {
-                    if (data.QualificationTypeId) {
-                        grantQualification(data, cb);
+                    if (options.qualification && data.QualificationTypeId) {
+                        assignQualification(data, cb);
                     }
                     else if (cb) cb();
                 });
             }
-            else if (data.QualificationTypeId) {
-                grantQualification(data, cb);
+            else if (options.qualification && data.QualificationTypeId) {
+                assignQualification(data, cb);
+            }
+            else {
+                if (cb) cb();
             }
         }
     }, function(err) {
@@ -516,19 +721,10 @@ function uploadResult(data, cb) {
 }
 
 function grantAllBonuses(opts, cb) {
-    var waitForAllBonuses;
+    var uniqueToken;
 
-    if (!api || !shapi) {
-        logger.error('api not available. connect first');
-        if (cb) cb();
-        return;
-    }
-
-    if (!resultsDb || !resultsDb.size()) {
-        winston.warn('no results found.');
-        if (cb) cb();
-        return true;
-    }
+    // Check API and DB.
+    if (!checkAPIandDB(cb)) return;
 
     if (opts.reason &&
         ('string' !== typeof opts.reason || opts.reason.trim() === '')) {
@@ -538,22 +734,26 @@ function grantAllBonuses(opts, cb) {
         return
     }
 
-    // TODO: fix.
-    bonusesGranted = 0;
-    waitForAllBonuses = function(err) {
-        if (!err) b
-    };
-    resultsDb.each(function(i) {
-        var myi;
-        if (opts.reason && i.Reason) {
-            myi = J.clone(i);
-        }
-        else {
-            myi = i;
-        }
+    uniqueToken = opts.token || cfg.token;
+    if ('number' !== typeof uniqueToken || uniqueToken === 0) {
+        logger.error('unique token is invalid. Found: ' + uniqueToken);
+        if (cb) cb();
+        return;
+    }
 
+    bonusProcessed = 0;
+    bonusesGranted = 0;
+
+    resultsDb.each(function(i, cb) {
+        var myi;
+        myi = J.clone(i);
         if (opts.reason) myi.Reason = opts.reason;
-        grantBonus(i);
+        myi.token = uniqueToken;
+        grantBonus(myi);
+    }, function(err) {
+        if (++bonusProcessed >= totResults) {
+            showUploadStats(undefined, cb);
+        }
     });
 
     if (cb) cb();
@@ -583,34 +783,6 @@ function grantBonus(data, cb) {
     });
 }
 
-function grantQualification(data, cb) {
-    var qid, params;
-
-    // Qualification.
-    qid = data.QualificationTypeId || QualificationTypeId;
-    if (!qid) return;
-
-    params = {
-        WorkerId: data.WorkerId,
-        QualificationTypeId: qid,
-        SendNotification: !!data.SendNotification || sendNotification
-    };
-
-    if (data.IntegerValue) {
-        params.IntegerValue = data.IntegerValue;
-    }
-
-    shapi.req('AssignQualification', params, function(res) {
-        nQualificationGiven++;
-        if (cb) cb();
-    }, function (err) {
-        errorsQualification.push(err);
-        if (cb) cb(err);
-    });
-
-    return true;
-}
-
 function showUploadStats(args, cb) {
     var err;
 
@@ -626,75 +798,98 @@ function showUploadStats(args, cb) {
         return true;
     }
 
-    totBonusExpected = 0;
-    totApproveExpected = 0;
-    totRejectExpected = 0;
-    totQualificationExpected = 0;
+    args = args || { all: true };
 
-    nBonus = 0, sumSquaredBonus = 0, stdDevBonus = 'NA';
-    resultsDb.each(function(item) {
-        var b;
-        b = item[cfg.bonusField];
-        if (b) {
-            nBonus++;
-            totBonusExpected += b;
-            if ('undefined' === typeof maxBonus || b > maxBonus) maxBonus = b;
-            if ('undefined' === typeof minBonus || b < minBonus) minBonus = b;
-            sumSquaredBonus += Math.pow(b, 2);
+    if (args.all || args.bonus) {
+        totBonusExpected = 0;
+        totApproveExpected = 0;
+        totRejectExpected = 0;
+        totQualificationExpected = 0;
+
+        nBonus = 0, sumSquaredBonus = 0, stdDevBonus = 'NA';
+        resultsDb.each(function(item) {
+            var b;
+            b = item[cfg.bonusField];
+            if (b) {
+                nBonus++;
+                totBonusExpected += b;
+                if ('undefined' === typeof maxBonus || b > maxBonus) {
+                    maxBonus = b;
+                }
+                if ('undefined' === typeof minBonus || b < minBonus) {
+                    minBonus = b;
+                }
+                sumSquaredBonus += Math.pow(b, 2);
+            }
+            if (item.Reject) totRejectExpected++;
+            else if (item.Approve) totApproveExpected++;
+            if (item.QualificationTypeId) totQualificationExpected++;
+        });
+
+        if (nBonus > 1 ) {
+            stdDevBonus = (Math.pow(totBonusExpected, 2) / nBonus);
+            stdDevBonus = sumSquaredBonus - stdDevBonus;
+            stdDevBonus = Math.sqrt( stdDevBonus / (nBonus - 1) );
+            meanBonus = (totBonusExpected / nBonus).toFixed(2);
         }
-        if (item.Reject) totRejectExpected++;
-        else if (item.Approve) totApproveExpected++;
-        if (item.QualificationTypeId) totQualificationExpected++;
-    });
+        else if (nBonus === 1) {
+            meanBonus = maxBonus;
+        }
 
-    if (nBonus > 1 ) {
-        stdDevBonus = sumSquaredBonus -(Math.pow(totBonusExpected, 2) / nBonus);
-        stdDevBonus = Math.sqrt( stdDevBonus / (nBonus - 1) );
-        meanBonus = (totBonusExpected / nBonus).toFixed(2);
-    }
-    else if (nBonus === 1) {
-        meanBonus = maxBonus;
-    }
+        winston.info('results: ' + totResults || 0);
+        winston.info('to approve: ' + totApproveExpected);
+        winston.info('to reject: ' + totRejectExpected);
+        winston.info('bonuses: ' + nBonus);
+        if (nBonus > 0) {
+            winston.info('bonuses tot: ' + totBonusExpected);
+            if (nBonus > 1) {
+                winston.info('bonuses mean: ' + meanBonus);
+                winston.info('bonuses min: ' + minBonus);
+                winston.info('bonuses max: ' + maxBonus);
+                winston.info('bonuses stddev: ' + stdDevBonus);
+            }
+        }
 
-    winston.info('results: ' + totResults || 0);
-    winston.info('to approve: ' + totApproveExpected);
-    winston.info('to reject: ' + totRejectExpected);
-    winston.info('bonuses: ' + nBonus);
-    if (nBonus > 0) {
-        winston.info('bonuses tot: ' + totBonusExpected);
-        if (nBonus > 1) {
-            winston.info('bonuses mean: ' + meanBonus);
-            winston.info('bonuses min: ' + minBonus);
-            winston.info('bonuses max: ' + maxBonus);
-            winston.info('bonuses stddev: ' + stdDevBonus);
+
+        if ('number' !== typeof nProcessed) {
+            winston.warn('results not yet uploaded to amt.');
+            if (cb) cb();
+            return true;
+        }
+
+        winston.info('results processed: ' + nProcessed + '/' + totResults);
+        winston.info('approved: ' + nApproved);
+        winston.info('rejected: ' + nRejected);
+        winston.info('bonuses: ' + nBonusGiven +
+                     ' (paid: ' + (totBonusPaid || 0) + ')');
+
+        if (errorsApproveReject && errorsApproveReject.length) {
+            err = true;
+            winston.error('approve/reject failed: ' +
+                          errorsApproveReject.length);
+        }
+        if (errorsBonus && errorsBonus.length) {
+            err = true;
+            winston.error('bonuses failed: ' + errorsBonus.length);
         }
     }
-    winston.info('qualifications: ' + totQualificationExpected);
 
-    if ('number' !== typeof nProcessed) {
-        winston.warn('results not yet uploaded to amt.');
-        if (cb) cb();
-        return true;
+    if (args.all || args.qualification) {
+        winston.info('qualifications: ' + totQualificationExpected);
+
+        if ('number' !== typeof nProcessed) {
+            winston.warn('results not yet uploaded to amt.');
+            if (cb) cb();
+            return true;
+        }
+        winston.info('qualifications given: ' + nQualificationGiven);
+        if (errorsQualification && errorsQualification.length) {
+            err = true;
+            winston.error('qualifications failed: ' +
+                          errorsQualification.length);
+        }
     }
 
-    winston.info('results processed: ' + nProcessed + '/' + totResults);
-    winston.info('approved: ' + nApproved);
-    winston.info('rejected: ' + nRejected);
-    winston.info('bonuses: ' + nBonusGiven +
-                 '(paid: ' + totBonusPaid + ')');
-    winston.info('qualifications: ' + nQualificationGiven);
-    if (errorsApproveReject.length) {
-        err = true;
-        winston.error('errors approve/reject: ' + errorsApproveReject.length);
-    }
-    if (errorsBonus.length) {
-        err = true;
-        winston.error('errors bonuses: ' + errorsBonus.length);
-    }
-    if (errorsQualification.length) {
-        err = true;
-        winston.error('errors qualifications: ' + errorsQualification.length);
-    }
     if (err) {
     // winston.warn('type showErrors to have more details about the errors');
     }
@@ -847,13 +1042,9 @@ function getQualificationType(args, cb) {
         QualificationType = qualificationType[0];
         QualificationTypeId = QualificationType.QualificationTypeId;
 
-        if (resultsDb && resultsDb.size()) {
-            resultsDb.each(function(i) {
-                i.QualificationTypeId = QualificationTypeId;
-            });
-        }
+        cfg.QualificationTypeId = QualificationTypeId;
 
-        logger.info('retrieved QualificationType id: ' + QualificationTypeId +
+        logger.info('retrieved QualificationTypeId: ' + QualificationTypeId +
                    ' ("' + QualificationType.Name + '")');
         if (cb) cb();
     });
