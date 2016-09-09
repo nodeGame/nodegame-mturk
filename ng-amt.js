@@ -6,7 +6,6 @@
 var fs = require('fs-extra');
 var path = require('path');
 var _ = require('underscore');
-var NDDB = require('NDDB').NDDB;
 var J = require('JSUS').JSUS;
 
 // GLOBAL VARIABLES
@@ -23,19 +22,13 @@ var HITId, HIT;
 
 // Bonus/Results approval operations.
 var bonusField, exitCodeField;
-var validateLevel, validateParams;
 var sendNotification, qualificationId;
 
-var inputCodesFile, resultsFile;
-var inputCodesErrors, resultsErrors;
-var inputCodesDb, resultsDb;
 
 var totResults, totBonusPaid;
 var nApproved, nRejected, nBonusGiven, nQualificationGiven, nProcessed;
 var errorsApproveReject, errorsBonus, errorsQualification;
 
-// QualificationType Id;
-var QualificationTypeId, QualificationType;
 
 // GrantBonus
 var bonusGranted, bonusProcessed;
@@ -60,207 +53,20 @@ var cfg;
 cfg = require('./lib/config')(program);
 if (!cfg) return;
 
+// Load shared methods.
+//////////////////////
+
+var stuff = {};
+stuff.codes = require('./lib/codes');
+stuff.manageHIT = require('./lib/manageHIT');
+stuff.get = require('./lib/get');
+
+module.exports.stuff = stuff;
+
 // VORPAL COMMANDS
 //////////////////
-var vorpal = require('vorpal')();
-
-vorpal
-    .command('connect')
-    .action(connect);
-
-
-vorpal
-    .command('extendHIT', 'Extends the HIT.')
-    .option('-a, --assignments [n]',
-            'Adds n assigments to the HIT')
-    .option('-t, --time [t]',
-            'Adds extra t seconds to the HIT')
-    .action(extendHIT);
-
-vorpal
-    .command('expireHIT', 'Expires the HIT')
-    .action(expireHIT);
-
-vorpal
-    .command('loadResults', 'Loads a results file')
-
-    .option('-r, --replace [resultsFile]',
-            'Replaces current database')
-
-    .option('-a, --append [resultsFile]',
-            'Appends to current database')
-
-    .option('-f, --resultsFile [resultsFile]',
-            'Path to a codes file with Exit and Access Codes')
-
-    .option('-v, --validateLevel <level>',/^(0|1|2)$/i, '2')
-
-    .action(function(args, cb) {
-        loadResults(args.options, cb);
-    });
-
-
-vorpal
-    .command('loadInputCodes', 'Loads an input codes file')
-
-    .option('-r, --replace [resultsFile]',
-            'Replaces current database')
-
-    .option('-a, --append [resultsFile]',
-            'Appends to current database')
-
-    .option('-f, --inputCodesFile [inputCodesFile]',
-            'Path to a codes file with Exit and Access Codes')
-
-    .option('-v, --validateLevel <level>',/^(0|1|2)$/i, '2')
-
-    .option('-b, --bonusField [bonusField]',
-            'Overwrites the name of the bonus field (default: bonus)')
-
-    .option('-e, --exitCodeField [exitCodeField]',
-            'Overwrites the name of the exit code field ' +
-            '(default: ExitCode)')
-
-    .action(function(args, cb) {
-        loadInputCodes(args.options, cb);
-    });
-
-vorpal
-    .command('uploadResults',
-             'Uploads the results to AMT server (approval+bonus+qualification)')
-
-    .option('-f, --RequesterFeedback <feedback>',
-            'Optional requester feedback for the worker')
-
-    .option('-q, --doQualification',
-            'Also assign the qualification, if specified or found')
-
-    .option('-Q, --QualificationTypeId',
-            'Sets the qualification type id (overwrites previous values)')
-
-    .option('-i, --IntegerValue',
-            'Sets the integer value for the qualification (AMT default = 1)')
-
-    .option('-n --SendNotification',
-            'Sends a notification about qualification (AMT default = true')
-
-    .option('-b, --doBonus', 'Also grant bonus, if found')
-
-    .option('-t, --UniqueRequestToken [token]',
-            'Unique token for one-time operations')
-
-    .option('-r --Reason [reason]',
-            'Sets the reason for the bonus')
-
-    .action(function(args, cb) {
-        uploadResults(args.options, cb);
-    });
-
-vorpal
-    .command('grantBonus',
-             'Grants bonuses as specified in results codes')
-
-    .option('-t, --UniqueRequestToken [token]',
-            'Unique token for one-time operations')
-
-    .option('-r --Reason [reason]',
-            'Sets the reason for the bonus')
-
-    .action(function(args, cb) {
-        grantAllBonuses(args.options, cb);
-    });
-
-vorpal
-    .command('assignQualification',
-             'Assigns a Qualification to all results codes')
-
-    .option('-q --QualificationTypeId',
-             'Specify the ID of the qualification (overwrites previous values)')
-
-    .option('-i --IntegerValue [value]',
-             'Sets the integer value for the qualification (AMT default = 1)')
-
-    .option('-n --SendNotification',
-            'Sends a notification about qualification (AMT default = true')
-
-    .action(function(args, cb) {
-        assignAllQualifications(args.options, cb);
-    });
-
-vorpal
-    .command('get <what>', 'Fetches and stores the requested info')
-    .autocomplete([ 'HITId', 'QualificationTypeId', 'AccountBalance' ])
-    .action(function(args, cb) {
-        if (args.what === 'HITId') {
-            getLastHITId({}, cb);
-        }
-        else if (args.what === 'QualificationTypeId') {
-            getQualificationType({}, cb);
-        }
-
-        else if (args.what === 'AccountBalance') {
-            showAvailableAccountBalance({}, cb);
-        }
-        else {
-            logger.warn('unknown "get" argument: ' + args.what);
-            cb();
-        }
-    });
-
-vorpal
-    .command('show <what>', 'Prints out the requested info')
-
-    .autocomplete(['Results', 'UploadStats', 'InputCodes', 'Config'])
-
-    .option('-p, --position [position]', 'Position of result|input code in db')
-
-    .action(function(args, cb) {
-        var idx, config;
-
-        if (args.what === 'Results') {
-            if (!resultsDb || !resultsDb.size()) {
-                logger.error('no results to show.');
-            }
-            else {
-                idx = args.options.position || 0;
-                this.log(resultsDb.get(idx));
-            }
-        }
-        else if (args.what === 'InputCodes') {
-            if (!inputCodesDb || !inputCodesDb.size()) {
-                logger.error('no input codes to show.');
-            }
-            else {
-                idx = args.options.position || 0;
-                this.log(inputCodesDb.get(idx));
-            }
-        }
-
-        else if (args.what === 'UploadStats') {
-            showUploadStats();
-        }
-
-        else if (args.what === 'Config') {
-            config = J.clone(cfg);
-            config.resultsFile = resultsFile;
-            config.inputCodesFile = inputCodesFile;
-            config.nResults = resultsDb ? resultsDb.size() : 'NA';
-            config.nInputCodes = inputCodesDb ? inputCodesDb.size() : 'NA';
-            config.HITId = HITId || 'NA';
-            config.QualificationTypeId = cfg.QualificationTypeId || 'NA';
-            config.token = cfg.token || 'NA';
-            config.api = api ? 'client created' : 'client **not** created';
-            this.log(config);
-        }
-        else {
-            logger.warn('unknown "show" argument: ' + args.what);
-        }
-        cb();
-    });
-
-
-// END VORPAL COMMANDS
-//////////////////////
+var vorpal;
+vorpal = require('./lib/vorpal');
 
 
 // DEFAULT ACTION (from program)
@@ -270,8 +76,9 @@ if (program.inputCodesFile) {
     loadInputCodes(program);
 }
 if (program.resultsFile) {
-    loadResults(program);
+    stuff.codes.loadResults(program);
 }
+
 
 if (program.connect) {
     options = {};
@@ -292,7 +99,6 @@ else {
 
 // END DEFAULT  ACTION
 /////////////////////////////
-
 
 
 // FUNCTIONS
@@ -323,124 +129,6 @@ function showAvailableAccountBalance(args, cb) {
                     balance.FormattedPrice);
         if (cb) cb();
     });
-}
-
-/**
- * ### loadResults
- *
- *
- *
- */
-function loadResults(args, cb) {
-
-    // Checking options.
-
-    // Append and replace db.
-    if (args.append && args.replace) {
-        logger.error('cannot append and replace results db at the same time.');
-        if (cb) cb();
-        return;
-    }
-
-    // Results File.
-    resultsFile = args.resultsFile || cfg.resultsFile;
-    if (!resultsFile) {
-        logger.error('no results file provided.');
-        if (cb) cb();
-        return;
-
-    }
-    if (!fs.existsSync(resultsFile)) {
-        logger.error('results file not found: ' + resultsFile);
-        if (cb) cb();
-        return;
-
-    }
-    logger.info('results file: ' + resultsFile);
-
-    // Validate Level and Params.
-    validateLevel = args.validateLevel || cfg.validateLevel;
-    logger.info('validation level: ' + validateLevel);
-    validateParams = {
-        bonusField: cfg.bonusField,
-        exitCodeField: cfg.exitCodeField
-    };
-    if (HITId) validateParams.HITId = HITId;
-
-    // Setting up results database for import.
-
-    if (resultsDb) {
-        if (args.replace) {
-            resultsDb = getResultsDB();
-        }
-        else if (!args.append) {
-            logger.error('results db already found. ' +
-                         'Use options: "replace", "append"');
-
-            if (cb) cb();
-            return;
-        }
-    }
-    else {
-        resultsDb = getResultsDB();
-    }
-
-    // Loading results file.
-    resultsDb.loadSync(resultsFile, {
-        separator: ',',
-        quote: '"',
-        headers: true
-    });
-    totResults = resultsDb.size();
-    logger.info('result codes: ' + totResults);
-
-    if (cb) cb();
-    return true;
-}
-
-/**
- * ### loadInputCodes
- *
- *
- *
- */
-function loadInputCodes(args, cb) {
-
-    // Input Codes.
-    inputCodesFile = args.inputCodesFile || cfg.inputCodesFile;
-    if (!inputCodesFile) {
-        if (!fs.existsSync(inputCodesFile)) {
-            logger.error('input codes file not found: ' + inputCodesFile);
-            if (cb) cb();
-            return;
-        }
-    }
-    logger.info('input codes: ' + inputCodesFile);
-    if (inputCodesDb) {
-        if (args.replace) {
-            inputCodesDb = getInputCodesDB();
-        }
-        else if (!args.append) {
-            logger.error('inputCodes db already found. ' +
-                         'Use options: "replace", "append"');
-            if (cb) cb();
-            return;
-        }
-    }
-    else {
-        inputCodesDb = getInputCodesDB();
-    }
-
-    inputCodesDb.loadSync(inputCodesFile);
-    logger.info('input codes: ' + inputCodesDb.size());
-    if (inputCodesErrors.length) {
-        logger.error('input codes errors: ' + inputCodesErrors.length);
-        logger.error('correct the errors before continuing');
-        if (cb) cb();
-        return;
-    }
-    if (cb) cb();
-    return true;
 }
 
 /**
@@ -1096,102 +784,6 @@ function showUploadStats(args, cb) {
 
     return true;
 }
-
-/**
- * ### extendHIT
- *
- *
- *
- */
-function extendHIT(args, cb) {
-    var data, assInc, expInc;
-
-    if (!api || !shapi) {
-        logger.error('api not available. connect first');
-        if (cb) cb();
-        return;
-    }
-    if (!HITId) {
-        logger.error('no HIT id found. get-last-HITId first');
-        if (cb) cb();
-        return;
-    }
-
-    assInc = args.options ? args.options.assignments : args.assignments;
-    expInc = args.options ? args.options.time : args.time;
-
-    if (!expInc && !assInc) {
-
-        logger.error('ExtendHIT: both MaxAssignmentsIncrement and ' +
-                     'ExpirationIncrementInSeconds are missing.');
-        if (cb) cb();
-        return;
-    }
-
-    if (assInc && ('number' !== typeof assInc || assInc < 1)) {
-        logger.error('ExtendHIT: MaxAssignmentsIncrement must be ' +
-                     'a number > 1 or undefined. Found: ' + assInc);
-        if (cb) cb();
-        return;
-    }
-
-    if (expInc && ('number' !== typeof expInc || assInc < 1)) {
-        logger.error('ExtendHIT: MaxAssignmentsIncrement must be ' +
-                     'a number > 1 or undefined. Found: ' + assInc);
-        if (cb) cb();
-        return;
-    }
-
-    data = {
-        HITId: HITId,
-        MaxAssignmentsIncrement: assInc,
-        ExpirationIncrementInSeconds: expInc
-    };
-
-    shapi.req('ExtendHIT', data, function() {
-        logger.info('HIT extended: ' + HITId);
-        if (cb) cb();
-    }, function(err) {
-        logger.error('HIT could **not** be extended: ' + HITId);
-        if (cb) cb();
-    });
-
-    return true;
-}
-
-
-/**
- * ### expireHIT
- *
- *
- *
- */
-function expireHIT(args, cb) {
-    if (!api || !shapi) {
-        logger.error('api not available. connect first');
-        if (cb) cb();
-        return;
-
-    }
-    if (!HITId) {
-        logger.error('not HIT id found. get-last-HITId first');
-        if (cb) cb();
-        return;
-    }
-
-    shapi.req('ForceExpireHIT', {
-        HITId: HITId
-    }, function() {
-        logger.info('HIT expired: ' + HITId);
-        if (cb) cb();
-    }, function(err) {
-        logger.error('HIT could **not** be expired: ' + HITId);
-        if (cb) cb();
-    });
-    return true;
-}
-
-
 
 /**
  * ### getQualificationType
