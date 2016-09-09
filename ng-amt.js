@@ -369,10 +369,17 @@ function getAccountBalance(args, cb) {
     });
 }
 
+/**
+ * ### showAvailableAccountBalance
+ *
+ *
+ *
+ */
 function showAvailableAccountBalance(args, cb) {
     getAccountBalance({}, function(balance) {
-        logger.info('Your balance is: ' + balance.FormattedPrice);
-        cb();
+        logger.info((args.text || 'Your balance is: ') +
+                    balance.FormattedPrice);
+        if (cb) cb();
     });
 }
 
@@ -695,15 +702,18 @@ function uploadResults(args, cb) {
         options.assignQualification = true;
     }
 
+    getAccountBalance({}, function(balanceObj) {
 
+        options.origAccountBalance = balanceObj;
+        options.GetAccountBalance = true;
 
-    // Do it!
-    resultsDb.each(uploadResult, function(err) {
-        if (++nProcessed >= totResults) {
-            showUploadStats(options, cb);
-        }
-    }, args);
-
+        // Do it!
+        resultsDb.each(uploadResult, function(err) {
+            if (++nProcessed >= totResults) {
+                showUploadStats(options, cb);
+            }
+        }, args);
+    });
     return true;
 }
 
@@ -1113,7 +1123,25 @@ function showUploadStats(args, cb) {
     if (err) {
     // logger.warn('type showErrors to have more details about the errors');
     }
-    if (cb) cb();
+
+    if (args.GetAccountBalance) {
+        getAccountBalance({}, function(balance) {
+            if ('undefined' !== typeof args.origAccountBalance) {
+                logger.log('Original balance: ' +
+                           args.origAccountBalance.FormattedPrice +
+                           ' New balance: ' + balance.FormattedPrice +
+                           ' (diff: ' +
+                           args.origAccountBalance.Amount - balance.Amount +
+                           ')');
+                if (cb) cb();
+            }
+            else {
+                showAvailableAccountBalance({}, cb);
+            }
+        });
+    }
+    else if (cb) cb();
+
     return true;
 }
 
