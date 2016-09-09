@@ -137,6 +137,9 @@ vorpal
         else if (args.what === 'last-Qualification-Type') {
             getQualificationType({}, cb);
         }
+        else if (args.what === 'balance') {
+
+        }
         else {
             logger.warn('unknown "get" argument: ' + args.what);
             cb();
