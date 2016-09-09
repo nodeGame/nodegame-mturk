@@ -587,7 +587,7 @@ function assignQualification(data, cb, args) {
     qid = args.QualificationTypeId || data.QualificationTypeId;
 
     if (!qid) {
-        err = 'no QualificationTypeId found. WorkerId: ' + data.WorkerId
+        err = 'no QualificationTypeId found. WorkerId: ' + data.WorkerId;
         logger.error(err);
         if (cb) cb(err);
         return;
@@ -792,7 +792,7 @@ function prepareArgs(command, args, cb) {
             logger.error('--Reason must be non-empty string or undefined. ' +
                          'Found: ' + args.Reason);
             if (cb) cb();
-            return
+            return;
         }
 
         if ('undefined' !== typeof args.UniqueRequestToken) {
@@ -921,9 +921,13 @@ function resetGlobals(command) {
 
 }
 
+/**
+ * ### grantAllBonuses
+ *
+ *
+ *
+ */
 function grantAllBonuses(args, cb) {
-    var uniqueToken;
-
     // Check API and DB.
     if (!checkAPIandDB(cb)) return;
     // Check args.
@@ -941,8 +945,14 @@ function grantAllBonuses(args, cb) {
     }, args);
 
     return true;
-};
+}
 
+/**
+ * ### grantBonus
+ *
+ *
+ *
+ */
 function grantBonus(data, cb, args) {
     var params, reason, uniqueToken, err;
     args = args || {};
@@ -1145,6 +1155,12 @@ function showUploadStats(args, cb) {
     return true;
 }
 
+/**
+ * ### extendHIT
+ *
+ *
+ *
+ */
 function extendHIT(args, cb) {
     var data, assInc, expInc;
 
@@ -1202,6 +1218,12 @@ function extendHIT(args, cb) {
 }
 
 
+/**
+ * ### expireHIT
+ *
+ *
+ *
+ */
 function expireHIT(args, cb) {
     if (!api || !shapi) {
         logger.error('api not available. connect first');
@@ -1228,6 +1250,12 @@ function expireHIT(args, cb) {
 }
 
 
+/**
+ * ### connect
+ *
+ *
+ *
+ */
 function connect(args, cb) {
     if (api) {
         logger.error('already connected.');
@@ -1274,6 +1302,12 @@ function connect(args, cb) {
     return true;
 }
 
+/**
+ * ### getQualificationType
+ *
+ *
+ *
+ */
 function getQualificationType(args, cb) {
     if (!api || !shapi) {
         logger.error('api not available. connect first');
@@ -1298,6 +1332,13 @@ function getQualificationType(args, cb) {
     });
 }
 
+
+/**
+ * ### getLastHITId
+ *
+ *
+ *
+ */
 function getLastHITId(args, cb) {
     if (!api || !shapi) {
         logger.error('api not available. connect first');
@@ -1319,6 +1360,12 @@ function getLastHITId(args, cb) {
     });
 }
 
+/**
+ * ### getInputCodesDB
+ *
+ *
+ *
+ */
 function getInputCodesDB() {
     var db;
 
@@ -1336,6 +1383,12 @@ function getInputCodesDB() {
     return db;
 }
 
+/**
+ * ### getResultsDB
+ *
+ *
+ *
+ */
 function getResultsDB() {
     var db;
 
@@ -1396,7 +1449,7 @@ function getResultsDB() {
             resultsErrors.push(str);
         }
 
-        if (validateLevel) {
+        if (shared.validateLevel) {
             // Standard validation.
             str = shared.validateCode(i, validateParams);
             if (str) {
@@ -1404,7 +1457,7 @@ function getResultsDB() {
                 logger.error(str);
             }
             // Custom validation.
-            else if ('function' === typeof validateResult) {
+            else if ('function' === typeof shared.validateResult) {
                 str = shared.validateResult(i, validateParams);
                 if ('string' === typeof str) {
                     resultsErrors.push(str);
