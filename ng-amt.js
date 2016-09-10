@@ -37,17 +37,20 @@ vorpal = require('./lib/core/vorpal');
 // DEFAULT ACTION (from program)
 ////////////////////////////////
 
-if (program.inputCodesFile) stuff.codes.loadInputCodes(program);
-if (program.resultsFile) stuff.codes.loadResults(program);
+var codes;
+if (program.inputCodesFile || program.resultsFile) {
+    codes = require('./lib/modules/codes');
+    if (program.inputCodesFile) codes.loadInputCodes(program);
+    if (program.resultsFile) codes.loadResults(program);
+}
 
-var options, api;
+var options;
 if (program.connect) {
     options = {};
     if (program.getLastHITId) options.getLastHITId = true;
     if (program.getQualificationTypeId) options.getQualificationTypeId = true;
 
-    api = require('./lib/core/api');
-    api.connect(options, function() {
+    require('./lib/core/api').connect(options, function() {
         vorpal
             .delimiter('ng-amt$')
             .show();
