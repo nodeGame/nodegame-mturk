@@ -40,12 +40,14 @@ vorpal = require('./lib/core/vorpal');
 if (program.inputCodesFile) stuff.codes.loadInputCodes(program);
 if (program.resultsFile) stuff.codes.loadResults(program);
 
+var options, api;
 if (program.connect) {
-    var options = {};
+    options = {};
     if (program.lastHITId) options.getLastHITId = true;
     if (program.getQualificationTypeId) options.getQualificationTypeId = true;
 
-    connect(options, function() {
+    api = require('./lib/core/api');
+    api.connect(options, function() {
         vorpal
             .delimiter('ng-amt$')
             .show();
