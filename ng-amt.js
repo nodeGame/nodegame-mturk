@@ -12,46 +12,26 @@ var J = require('JSUS').JSUS;
 /////////////
 
 var program;
-program = require('./lib/program');
+program = require('./lib/core/program');
 program.parse(process.argv);
 
 // Winston logger.
 //////////////////
 
 var logger;
-logger = require('./lib/logger')(program);
+logger = require('./lib/core/logger')(program);
 
 // Load and check config.
 /////////////////////////
 
 var cfg;
-cfg = require('./lib/config')(program);
+cfg = require('./lib/core/config')(program);
 if (!cfg) return;
-
-// Load shared methods.
-//////////////////////
-
-var stuff = {};
-
-// stuff.api = require('./lib/mturk-api');
-
-stuff.manageHIT = require('./lib/manageHIT');
-
-stuff.codes = require('./lib/codes');
-
-stuff.balance = require('./lib/balance');
-stuff.get = require('./lib/get');
-
-stuff.bonus = require('./lib/bonus');
-stuff.qualification = require('./lib/qualification');
-stuff.result = require('./lib/result');
-
-stuff.show = require('./lib/show');
 
 // VORPAL COMMANDS
 //////////////////
 var vorpal;
-vorpal = require('./lib/vorpal');
+vorpal = require('./lib/core/vorpal');
 
 
 // DEFAULT ACTION (from program)
