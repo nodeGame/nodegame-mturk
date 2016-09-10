@@ -32,13 +32,21 @@ if (!cfg) return;
 //////////////////////
 
 var stuff = {};
-stuff.codes = require('./lib/codes');
-stuff.api = require('./lib/mturk-api');
-stuff.manageHIT = require('./lib/manageHIT');
-stuff.get = require('./lib/get');
-stuff.qualification = require('./lib/qualification');
 
-module.exports.stuff = stuff;
+// stuff.api = require('./lib/mturk-api');
+
+stuff.manageHIT = require('./lib/manageHIT');
+
+stuff.codes = require('./lib/codes');
+
+stuff.balance = require('./lib/balance');
+stuff.get = require('./lib/get');
+
+stuff.bonus = require('./lib/bonus');
+stuff.qualification = require('./lib/qualification');
+stuff.result = require('./lib/result');
+
+stuff.show = require('./lib/show');
 
 // VORPAL COMMANDS
 //////////////////
@@ -68,3 +76,7 @@ else {
         .delimiter('ng-amt$')
         .show();
 }
+
+
+// Do we need to export it?
+// module.exports.stuff = stuff;
