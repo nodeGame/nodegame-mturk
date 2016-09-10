@@ -43,7 +43,7 @@ if (program.resultsFile) stuff.codes.loadResults(program);
 var options, api;
 if (program.connect) {
     options = {};
-    if (program.lastHITId) options.getLastHITId = true;
+    if (program.getLastHITId) options.getLastHITId = true;
     if (program.getQualificationTypeId) options.getQualificationTypeId = true;
 
     api = require('./lib/core/api');
