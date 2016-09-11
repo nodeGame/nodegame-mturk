@@ -2,6 +2,12 @@
 
 An interactive console to handle basic operations with AMT HITs.
 
+## Purpose
+
+The package is intended to support integration between nodeGame and
+Amazon Mechanical Turk services, however, it can be as well used as a
+standalone application without nodeGame.
+
 ## Examples
 
 - Start a prompt with a loaded results file, and retrieve the last HIT
