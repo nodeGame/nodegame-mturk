@@ -44,13 +44,14 @@ if (program.inputCodesFile || program.resultsFile) {
     if (program.resultsFile) codes.loadResults(program);
 }
 
-var options;
-if (program.connect) {
-    options = {};
-    if (program.getLastHITId) options.getLastHITId = true;
-    if (program.getQualificationTypeId) options.getQualificationTypeId = true;
+var args;
+args = {};
+if (program.getLastHITId) args.getLastHITId = true;
+if (program.getQualificationTypeId) args.getQualificationTypeId = true;
+if (args.getLastHITId || program.getQualificationTypeId) program.connect = true;
 
-    require('./lib/core/api').connect(options, function() {
+if (program.connect) {
+    require('./lib/core/api').connect(args, function() {
         vorpal
             .delimiter('ng-amt$')
             .show();
