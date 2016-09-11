@@ -24,11 +24,11 @@ info: retrieved last HIT id: YYYYYYYYYYYYYYYYYYY (My Task Name")
 ng-amt~$ show Summary
 info: **** Results ****
 info: tot results: 9
-info: to approve:  9
-info: to reject:   0
+info: to approve:  7
+info: to reject:   2
 
 info: **** Bonus ****
-info: bonuses: 9
+info: bonuses: 7
 info: bonuses tot:  29.75
 info: bonuses mean: 3.31
 info: bonuses std:  0.55
@@ -39,7 +39,7 @@ info: **** Qualification ****
 info: qualifications: 0
 
 info: **** Balance ****
-info: Your balance is: $10,000.00
+info: Your balance is: $1,000
 ```
 
 - Approve/Reject all results.
@@ -54,6 +54,8 @@ info: results processed: 9/9
 info: approved: 7
 info: rejected: 2
 error: approve/reject failed: 0
+
+info: Original balance: $1,000 New balance: $993 (diff: 7)
 ```
 
 - Complete help.
