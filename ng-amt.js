@@ -39,7 +39,7 @@ vorpal = require('./lib/core/vorpal');
 
 var codes;
 if (program.inputCodesFile || program.resultsFile) {
-    codes = require('./lib/modules/codes');
+    codes = require('./lib/core/codes');
     if (program.inputCodesFile) codes.loadInputCodes(program);
     if (program.resultsFile) codes.loadResults(program);
 }
