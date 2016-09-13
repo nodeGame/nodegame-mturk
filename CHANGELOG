@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.9.2
+- Fix call to ManageHIT methods.
+
 ## 0.9.1
 - File codes.js moved from /modules to /core.
 - This library can be required.
