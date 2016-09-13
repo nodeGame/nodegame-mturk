@@ -25,7 +25,7 @@ module.exports = function(program, logger) {
 
     // Modules.
     stuff.modules = {};
-    stuff.modules.manage = require('./lib/modules/manageHIT');
+    stuff.modules.manageHIT = require('./lib/modules/manageHIT');
     stuff.modules.balance = require('./lib/modules/balance');
     stuff.modules.get = require('./lib/modules/get');
     stuff.modules.bonus = require('./lib/modules/bonus');
