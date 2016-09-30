@@ -22,7 +22,7 @@ info: result codes: 9
 info: creating mturk client...
 info: done.
 info: retrieved QualificationTypeId: XXXXXXXXXXXXXXXXXXX ("My Qualification")
-info: retrieved last HIT id: YYYYYYYYYYYYYYYYYYY (My Task Name")
+info: retrieved last HIT id: YYYYYYYYYYYYYYYYYYY ("My Task Name")
 ```
 - Show a summary of the results.
 

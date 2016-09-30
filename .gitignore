@@ -24,3 +24,5 @@ mturk.conf.js
 manifest.yml
 
 log/*.log
+
+data
