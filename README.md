@@ -84,6 +84,17 @@ ng-amt$ help
     show [options] <what>           Prints out the requested info
 ```
 
+## Use programmatically
+
+```
+var ngamt = require('nodegame-mturk')( { config: 'path/to/config.js' });
+// Connect and fetch last HIT Id (async).
+ngamt.api.connect({ getLastHITId: true });
+// Expire HIT.
+ngamt.modules.manageHIT.expire(function(err) {
+   // Do something
+});
+```
 ## License
 
 [MIT](LICENSE)
