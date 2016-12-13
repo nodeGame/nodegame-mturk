@@ -5,6 +5,20 @@ module.exports =  {
     access : 'YOUR_ACCESS_CODE',
     secret : 'YOUR_SECRET',
 
+    // Settings below are all optional.
+
+    // Options for loading input and codes file.
+    // For full list of available options see https://github.com/nodeGame/NDDB
+    loadOptions: {
+
+        // How items are separated in the csv file. Default: ','.
+        separator: ';',
+
+        // How strings are quoted in the csv file. Default: '"'.
+        quote: '"'
+
+    }
+
     // Options below can be overwritten by command-line parameters.
 
     sandbox: true,
@@ -40,18 +54,6 @@ module.exports =  {
     inputCodesFile: 'path/to/input/codes/file',
     
     // Validation level for results.
-    validateLevel: 2,
-
-    // Options for loading input and codes file.
-    // For full list of available options see https://github.com/nodeGame/NDDB
-    loadOptions: {
-
-        // How items are separated in the csv file. Default: ','.
-        separator: ';',
-
-        // How strings are quoted in the csv file. Default: '"'.
-        quote: '"'
-
-    }
+    validateLevel: 2
 
 };
