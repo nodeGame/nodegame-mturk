@@ -40,6 +40,18 @@ module.exports =  {
     inputCodesFile: 'path/to/input/codes/file'
     
     // Validation level for results.
-    validateLevel: 2
+    validateLevel: 2,
+
+    // Options for loading input and codes file.
+    // For full list of available options see https://github.com/nodeGame/NDDB
+    load: {
+
+        // How items are separated in the csv file. Default: ','.
+        separator: ';',
+
+        // How strings are quoted in the csv file. Default: '"'.
+        quote: '"'
+
+    }
 
 };
