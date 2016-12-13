@@ -8,6 +8,12 @@ The package is intended to support integration between nodeGame and
 Amazon Mechanical Turk services, however, it can be as well used as a
 standalone application without nodeGame.
 
+## Config
+
+Create file `conf/mturk.conf.js` using the template in the
+same directory. Remember to specify: your Mturk API keys, and any
+additional options to correctly load your results file.
+
 ## Examples
 
 - Start a prompt with a loaded results file, and retrieve the last HIT
@@ -95,6 +101,7 @@ ngamt.modules.manageHIT.expire(function(err) {
    // Do something
 });
 ```
+
 ## License
 
 [MIT](LICENSE)
