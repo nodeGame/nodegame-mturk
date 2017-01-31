@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.1.1
+- Updated mturklinkpage.
+
 ## 1.1.0
 - Updated Readme.
 - Added loadOptions parameter to specify separator and other options.
