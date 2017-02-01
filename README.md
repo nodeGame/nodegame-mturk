@@ -16,13 +16,13 @@ additional options to correctly load your results file.
 
 ## Examples
 
-- Start a prompt with a loaded results file, and retrieve the last HIT
+- Start a prompt with a loaded **results file**, and retrieve the last HIT
 and last Qualification.
 ```
-$ node ng-amt -r path/to/result/file.csv -H -Q
+$ node ng-amt -r path/to/results/file.csv -H -Q
 
 info: sandbox-mode: on
-info: results file: path/to/result/file.csv
+info: results file: path/to/results/file.csv
 info: validation level: 2
 info: result codes: 9
 info: creating mturk client...
@@ -30,7 +30,7 @@ info: done.
 info: retrieved QualificationTypeId: XXXXXXXXXXXXXXXXXXX ("My Qualification")
 info: retrieved last HIT id: YYYYYYYYYYYYYYYYYYY ("My Task Name")
 ```
-- Show a summary of the results.
+- Show a **summary** of the results.
 
 ```
 ng-amt~$ show Summary
@@ -54,7 +54,7 @@ info: **** Balance ****
 info: Your balance is: $1,000
 ```
 
-- Approve/Reject all results.
+- **Approve/Reject** all results.
 
 ```
 ng-amt$ uploadResults 
@@ -69,6 +69,19 @@ error: approve/reject failed: 0
 
 info: Original balance: $1,000 New balance: $993 (diff: 7)
 ```
+
+- **Grant Bonus** with a message to all results.
+
+```
+ng-amt$ grantBonus -r "Thank You."
+```
+
+- **Assign Qualification** to all results.
+
+```
+ng-amt$ assignQualification
+```
+
 
 - Complete help.
 
