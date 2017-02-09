@@ -1,0 +1,45 @@
+<!-- Bootstrap v3.0.3 -->
+<link href="https://s3.amazonaws.com/mturk-public/bs30/css/bootstrap.min.css" rel="stylesheet" />
+<section class="container" id="Writing" style="margin-bottom:15px; padding: 10px 10px; font-family: Verdana, Geneva, sans-serif; color:#333333; font-size:0.9em;">
+  <div class="row col-xs-12 col-md-12"><!-- Instructions -->
+    <div class="panel panel-primary">
+      <div class="panel-heading"><strong>Instructions</strong></div>
+      
+      <div class="panel-body">
+        <p>{HITNAME} Trouble Ticket.</p>
+        
+        <ul>
+	  <li>
+            If you experienced a technical problem with the HIT
+	    named &quot;{HITNAME},&quot; you can report about your
+	    issues here.
+          </li>
+
+	  <li>Include your browser name and version.</li>
+
+	  <li>
+            Include your worker-id or the link through which you
+	    connected to the {HITNAME} server.
+          </li>
+
+	  <li>
+            If you like, you can also include your email, so that we
+            can contact you to investigate the issue.
+          </li>
+
+	  <li>
+            <strong>Important!</strong> Do not take this HIT if you
+            did not experience any issue (e.g. to say thank you, or to
+            report no issue), or if you did not participate in the HIT
+            {HITNAME}. All invalid submissions will be rejected.
+          </li>
+
+        </ul>
+      </div>
+    </div>
+    <!-- End Instructions -->
+    
+    <div><label>Describe your issue below:</label><textarea class="form-control" cols="250" name="WritingTexts" required="" rows="6"></textarea></div>
+  </div>
+</section>
+<!-- To make an input field mandatory, you can add required="" to the input field: https://developer.mozilla.org/en/docs/Web/HTML/Element/Input#attr-required --><!-- close container -->
