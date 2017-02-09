@@ -83,7 +83,23 @@ ng-amt$ assignQualification
 ```
 
 
-- Complete help.
+- **Get HIT Id and Status**
+
+```
+ng-amt$ get HITId 
+info: retrieved last HIT id: ****************AADIVNV ("Name of the HIT")
+ng-amt$ get HITStatus 
+info: **** HIT Status **** 
+info: id:            ****************AADIVNV
+info: status:        NotReviewed
+info: pending ass:   0
+info: available ass: 49
+info: completed ass: 0
+info: expiration:    Tue Feb 14 2017 10:38:04 GMT-0500 (EST)
+info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
+```
+
+- **Complete help**
 
 ```
 ng-amt$ help
