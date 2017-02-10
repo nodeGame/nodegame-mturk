@@ -54,6 +54,9 @@ module.exports =  {
     inputCodesFile: 'path/to/input/codes/file',
     
     // Validation level for results.
-    validateLevel: 2
+    validateLevel: 2,
+
+    // Number of attempts to repeat a request if an error occurs.
+    nRetries: 0
 
 };
