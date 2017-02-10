@@ -57,6 +57,12 @@ module.exports =  {
     validateLevel: 2,
 
     // Number of attempts to repeat a request if an error occurs.
-    nRetries: 0
+    nRetries: 0,
+
+    // Waiting time before repeating a failed request.
+    retriesInterval: 10000,
+
+    // Waiting time before two consecutive requests in a loop.
+    throttleInterval: 500
 
 };
