@@ -261,9 +261,10 @@
             return btoa(JSON.stringify(o));
         }
         
-        function displayLink(code) {
+        function displayLink(code, newHost) {
             var link, url;
-            url = host + 'auth/' + code;
+            if (!newHost) newHost = host;
+            url = newHost + 'auth/' + code;
             link = document.getElementById('game-link');
             link.href = url;
             link.innerHTML = url;
@@ -301,8 +302,8 @@
                 url: host + 'claimid/',
                 data: { h: hid, id: wid, a: aid },
                 crossDomain: true,
-                success: function(result) {
-                    displayLink(result.code);
+                success: function(result) {                    
+                    displayLink(result.code, result.host);
                 },
                 error: function(error) {
                     showError(error.err);
