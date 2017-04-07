@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## Current
+- Fixed sending large lists of bonuses/results/qualifications.
+
 ## 1.1.1
 - Updated mturklinkpage.
 
