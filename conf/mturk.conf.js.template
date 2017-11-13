@@ -17,7 +17,7 @@ module.exports =  {
         // How strings are quoted in the csv file. Default: '"'.
         quote: '"'
 
-    }
+    },
 
     // Options below can be overwritten by command-line parameters.
 
