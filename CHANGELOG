@@ -1,7 +1,8 @@
 # CHANGELOG
 
-## Current
+## 1.1.2
 - Fixed sending large lists of bonuses/results/qualifications.
+- Fixed missed comma in template conf.
 
 ## 1.1.1
 - Updated mturklinkpage.
