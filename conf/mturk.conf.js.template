@@ -15,21 +15,54 @@ module.exports =  {
         separator: ';',
 
         // How strings are quoted in the csv file. Default: '"'.
-        quote: '"'
+        quote: '"',
 
+    },
+
+    // The names of the fields in the results file.
+
+    fields: {
+
+        bonus: 'bonus',
+
+        workerId: 'WorkerId',
+
+        assignmentId: 'AssignmentId',
+
+        hitId: 'HITId',
+
+        approve: 'Approve',
+
+        reject: 'Reject',
+
+        // Notice: in the results file obtained from AMT, it is named after
+        // the id of the HTML input element in the MTurk frame.
+        exitCode: 'exit',
+
+        accessCode: 'access'
+
+    },
+
+    // If TRUE, fields names as written in `fields` are case-insensitve.
+
+    fieldsCaseInsensitive: false,
+
+    // Bonus Boundaries (an error will be thrown if bonus is out of boundaries).
+
+    maxBonus: 10,
+
+    minBonus: 0,
+
+    // Filters the item to be loaded from the results file.
+    // If `function`, it should return FALSE, to skip an item.
+    // If `string`, field with the same name should be truthy to keep an item.
+    filter: function(item) {
+        if (item.skip) return false;
     },
 
     // Options below can be overwritten by command-line parameters.
 
     sandbox: true,
-
-    // The name of the bonus field in the results file (default: "bonus").
-    bonusField: 'bonus',
-
-    // The name of the ExitCode field in the results file (default: "ExitCode").
-    // Notice: in the results file obtained from AMT, it is named after the id
-    // of the HTML input element in the MTurk frame.
-    exitCodeField: 'Answer.surveycode',
 
     HITId: 'XXX',
 
