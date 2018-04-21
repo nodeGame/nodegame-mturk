@@ -1,17 +1,17 @@
 {
     "name": "nodegame-mturk"
-  , "description": "An interactive console to handle basic operation with AMT server."
-  , "version": "1.1.2"
+  , "description": "An interactive console to handle standard operations with the Amazon Mechanical Turk Web Service."
+  , "version": "4.0.0"
   , "homepage": "http://nodegame.org"
   , "author": "Stefano Balietti <futur.dorko@gmail.com>"
-  , "contributors": [
-        { "name": "Stefano Balietti", "email": "futur.dorko@gmail.com" }
+  , "keywords": [
+        "nodegame", "Amazon", "AMT", "mturk", "web-service", "payment", "api"
     ]
   , "repository": {
         "type": "git"
       , "url": "https://github.com/nodeGame/nodegame-mturk.git"
     }
-  , "engines": { "node": ">= 0.10.0" }
+  , "engines": { "node": ">= 6.0.0" }
   , "dependencies" : {
          "nodegame-client": "*",
          "mturk-api": ">= 3.0.2",
