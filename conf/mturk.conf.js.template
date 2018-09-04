@@ -12,7 +12,8 @@ module.exports =  {
     loadOptions: {
 
         // How items are separated in the csv file. Default: ','.
-        separator: ';',
+	// Note: AMT default separator is ';'.
+        separator: ',',
 
         // How strings are quoted in the csv file. Default: '"'.
         quote: '"',
@@ -22,6 +23,8 @@ module.exports =  {
     // The names of the fields in the results file.
 
     fields: {
+
+        id: 'id',
 
         bonus: 'bonus',
 
@@ -39,19 +42,26 @@ module.exports =  {
         // the id of the HTML input element in the MTurk frame.
         exitCode: 'exit',
 
-        accessCode: 'access'
+        accessCode: 'access',
+
+        qualificationTypeId: 'QualificationTypeId',
+
+        reason: 'Reason',
+
+        integerValue: 'IntegerValue',
+
+        assignmentStatus: 'AssignmentStatus',
+
+        requesterFeedback: 'RequesterFeedback'
 
     },
 
     // If TRUE, fields names as written in `fields` are case-insensitve.
-
     fieldsCaseInsensitive: false,
 
     // Bonus Boundaries (an error will be thrown if bonus is out of boundaries).
-
-    maxBonus: 10,
-
-    minBonus: 0,
+    maxBonus: 10, // Default: 10.
+    minBonus: 0,  // Default: 0.
 
     // Filters the item to be loaded from the results file.
     // If `function`, it should return FALSE, to skip an item.
