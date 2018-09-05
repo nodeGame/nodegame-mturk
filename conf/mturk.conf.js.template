@@ -20,41 +20,42 @@ module.exports =  {
 
     },
 
-    // The names of the fields in the results file.
+    // The names of the fields in the results and input db files.
+    // Values indicates defaults.
 
-    fields: {
-
-        id: 'id',
-
-        bonus: 'bonus',
-
-        workerId: 'WorkerId',
-
-        assignmentId: 'AssignmentId',
-
-        hitId: 'HITId',
-
-        approve: 'Approve',
-
-        reject: 'Reject',
-
-        // Notice: in the results file obtained from AMT, it is named after
-        // the id of the HTML input element in the MTurk frame.
-        exitCode: 'exit',
-
-        accessCode: 'access',
-
-        qualificationTypeId: 'QualificationTypeId',
-
-        reason: 'Reason',
-
-        integerValue: 'IntegerValue',
-
-        assignmentStatus: 'AssignmentStatus',
-
-        requesterFeedback: 'RequesterFeedback'
-
-    },
+//     fields: {
+// 
+//         id: 'id',
+// 
+//         bonus: 'bonus',
+// 
+//         workerId: 'WorkerId',
+// 
+//         assignmentId: 'AssignmentId',
+// 
+//         hitId: 'HITId',
+// 
+//         approve: 'Approve',
+// 
+//         reject: 'Reject',
+// 
+//         // Notice: in the results file obtained from AMT, it is named after
+//         // the id of the HTML input element in the MTurk frame.
+//         exitCode: 'exit',
+// 
+//         accessCode: 'access',
+// 
+//         qualificationTypeId: 'QualificationTypeId',
+// 
+//         reason: 'Reason',
+// 
+//         integerValue: 'IntegerValue',
+// 
+//         assignmentStatus: 'AssignmentStatus',
+// 
+//         requesterFeedback: 'RequesterFeedback'
+// 
+//     },
 
     // If TRUE, fields names as written in `fields` are case-insensitve.
     fieldsCaseInsensitive: false,
