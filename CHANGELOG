@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 4.1.0
+- All fields are customizable.
+- Fixed case-insensitive match.
+
 ## 4.0.0
 - Release updated to nodeGame 4.
 
