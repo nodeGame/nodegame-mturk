@@ -57,8 +57,11 @@ module.exports =  {
 // 
 //     },
 
-    // If TRUE, fields names as written in `fields` are case-insensitve.
-    fieldsCaseInsensitive: false,
+    // If TRUE, fields names as written in `fields` are case-insensitive.
+    
+    // Note: fast-comparison is executed:, fields are loaded from the first
+    // item in the database, and assumed that are identical  across all items.
+    fieldsCaseInsensitive: false,    
 
     // Bonus Boundaries (an error will be thrown if bonus is out of boundaries).
     maxBonus: 10, // Default: 10.
