@@ -32,14 +32,16 @@ module.exports =  {
     // },
 
     // The names of the fields in the results and input db files.
-    // Values indicates defaults, uncomment those that you need to change.
+    // Additional fields are allowed, and can be used, for example,
+    // by the `filter` function.
+    // Values below indicate defaults, uncomment those that you need to change.
 
     fields: {
 
     //     // Unique id of the player in nodeGame (optional).
     //     id: 'id',
     //
-    //     // Numeric value of the bonus (>=0).
+    //     // Numeric value of the bonus.
     //     bonus: 'bonus',
     //
     //     // Unique id of the worker in AMT.
@@ -100,12 +102,11 @@ module.exports =  {
     // item in the database, and assumed that are identical  across all items.
     fieldsCaseInsensitive: false,
 
-    // Filters the item to be loaded from the results file.
-    // If `function`, it should return FALSE, to skip an item.
-    // If `string`, field with the same name should be truthy to keep an item.
-    filter: function(item) {
-        if (item.skip) return false;
-    },
+    // Callback function to filter items to load from the results file.
+    // If function returns FALSE item is skipped, and no check is performed.
+    // filter: function(item) {
+    //     if (item.type === 'bot') return false;
+    // },
 
     // Options below can be overwritten by command-line parameters.
 
