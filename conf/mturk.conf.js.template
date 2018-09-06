@@ -124,6 +124,10 @@ module.exports =  {
     maxBonus: 10, // Default: 10.
     minBonus: 0,  // Default: 0.
 
+    // If TRUE, approve field is set to TRUE for all workers.
+    // Otherwise, approve and reject fields need to exist in results file.
+    // autoApprove: false,
+
     // The id of the HIT.
     // This value can be left undefined if not known.
     // HITId: 'XXX',

@@ -12,8 +12,19 @@ standalone application without nodeGame.
 ## Config
 
 Create file `conf/mturk.conf.js` using the template in the same
-directory. Remember to specify: your Mturk API keys, and any additional options
-to correctly load your results file (Important! AMT default separator is ;).
+directory. 
+
+Things you need to specify: 
+
+- your Mturk API keys.
+
+Things you might want to specify:
+
+- change the names of the configuration fields to match the names of headers in
+your results file (Important! AMT default separator is ;).
+- add a filter function to skip items that should not be processed
+- add auto-approve 
+- add reason for bonus
 
 ## Examples
 
