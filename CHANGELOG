@@ -1,8 +1,13 @@
 # CHANGELOG
 
+## 4.2.0 (current)
+- Filter function working.
+- Improved template configuration.
+
 ## 4.1.0
 - All fields are customizable.
 - Fixed case-insensitive match.
+- Default separator is comma (',').
 
 ## 4.0.0
 - Release updated to nodeGame 4.
