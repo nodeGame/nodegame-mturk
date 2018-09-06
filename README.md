@@ -1,6 +1,7 @@
 # nodegame-mturk 
 
-An interactive console to handle basic operations with AMT HITs.
+An interactive console to handle basic operations with Amazon Mechanical Turk
+(MTurk) HITs.
 
 ## Purpose
 
@@ -10,9 +11,9 @@ standalone application without nodeGame.
 
 ## Config
 
-Create file `conf/mturk.conf.js` using the template in the
-same directory. Remember to specify: your Mturk API keys, and any
-additional options to correctly load your results file (Important! AMT default separator is ;). 
+Create file `conf/mturk.conf.js` using the template in the same
+directory. Remember to specify: your Mturk API keys, and any additional options
+to correctly load your results file (Important! AMT default separator is ;).
 
 ## Examples
 

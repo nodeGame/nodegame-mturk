@@ -1,71 +1,104 @@
 module.exports =  {
 
-    // AWS secret and access.
+    // ## AWS secret and access.
 
     access : 'YOUR_ACCESS_CODE',
     secret : 'YOUR_SECRET',
 
-    // Settings below are all optional.
+    // All settings below are optional.
 
-    // Options for loading input and codes file.
-    // For full list of available options see https://github.com/nodeGame/NDDB
-    loadOptions: {
+    // ## Files settings.
 
-        // How items are separated in the csv file. Default: ','.
-	// Note: AMT default separator is ';'.
-        separator: ',',
+    // Path to a default results file. Default: undefined.
+    // Leave undefined if you want to specify it via command line or interface.
+    // resultsFile: 'path/to/results/file',
 
-        // How strings are quoted in the csv file. Default: '"'.
-        quote: '"',
+    // Path to a default input-codes file. Default: undefined.
+    // Leave undefined if you want to specify it via command line or interface.
+    // inputCodesFile: 'path/to/input/codes/file',
+
+    // Validation level for results. Default: 2.
+    // If < 0, no type checking or interval checking for bonus.
+    // validateLevel: 2,
+
+    // Options for loading results csv file.
+    // Full list of options: https://github.com/nodeGame/NDDB
+    // loadOptions: {
+           // How items are separated in the csv file. Default: ','.
+           // Note: AMT default separator is ';'.
+           // separator: ',',
+           // How strings are quoted in the csv file. Default: '"'.
+           // quote: '"',
+    // },
+
+    // The names of the fields in the results and input db files.
+    // Values indicates defaults, uncomment those that you need to change.
+
+    fields: {
+
+    //     // Unique id of the player in nodeGame (optional).
+    //     id: 'id',
+    //
+    //     // Numeric value of the bonus (>=0).
+    //     bonus: 'bonus',
+    //
+    //     // Unique id of the worker in AMT.
+    //     workerId: 'WorkerId',
+    //
+    //     // Unique id matching worker to HIT.
+    //     assignmentId: 'AssignmentId',
+    //
+    //     // Id of the task (HIT) shared with all workers who took it.
+    //     hitId: 'HITId',
+    //
+    //     // A truthy value will approve the HIT for the worker.
+    //     approve: 'Approve',
+    //
+    //     // A falsy value will reject the HIT for the worker.
+    //     reject: 'Reject',
+    //
+    //     // The exit code associated to a worker.
+    //     // This field is not needed to approve or to give a bonus,
+    //     // but it is the proof that the worker reached the end of the task.
+    //     // If an input-codes database is given, nodegame-mturk will
+    //     // automatically verify the match.
+    //     // Note: AMT, names this field after the id of the HTML
+    //     // input element inside the MTurk frame.
+    //     exitCode: 'exit',
+    //
+    //     // The access code associated to a worker.
+    //     // This field is not needed to approve or to give a bonus,
+    //     // but it is usually given by nodeGame to access the task.
+    //     accessCode: 'access',
+    //
+    //     // The qualification for the worker who took the task.
+    //     // Can also be fetched via API.
+    //     qualificationTypeId: 'QualificationTypeId',
+    //
+    //     // A value for the qualification. Default 1.    
+    //     integerValue: 'IntegerValue',
+    //
+    //     // A message given to the worker alongside his/her bonus. 
+    //     reason: 'Reason',
+    //
+    //     // The assignment status.
+    //     // This field is not needed to approve the HIT or send a bonus,
+    //     // it is set by AMT with value 'Submitted' to all workers who
+    //     // submitted the HIT.
+    //     assignmentStatus: 'AssignmentStatus',
+    //
+    //     // A message that the worker can see alongside his/her status.
+    //     // This field is usually needed when the requester need to approve
+    //     // a previously rejected assignment.
+    //     requesterFeedback: 'RequesterFeedback'
 
     },
 
-    // The names of the fields in the results and input db files.
-    // Values indicates defaults.
-
-//     fields: {
-// 
-//         id: 'id',
-// 
-//         bonus: 'bonus',
-// 
-//         workerId: 'WorkerId',
-// 
-//         assignmentId: 'AssignmentId',
-// 
-//         hitId: 'HITId',
-// 
-//         approve: 'Approve',
-// 
-//         reject: 'Reject',
-// 
-//         // Notice: in the results file obtained from AMT, it is named after
-//         // the id of the HTML input element in the MTurk frame.
-//         exitCode: 'exit',
-// 
-//         accessCode: 'access',
-// 
-//         qualificationTypeId: 'QualificationTypeId',
-// 
-//         reason: 'Reason',
-// 
-//         integerValue: 'IntegerValue',
-// 
-//         assignmentStatus: 'AssignmentStatus',
-// 
-//         requesterFeedback: 'RequesterFeedback'
-// 
-//     },
-
+    // Case of the fields.
     // If TRUE, fields names as written in `fields` are case-insensitive.
-    
     // Note: fast-comparison is executed:, fields are loaded from the first
     // item in the database, and assumed that are identical  across all items.
-    fieldsCaseInsensitive: false,    
-
-    // Bonus Boundaries (an error will be thrown if bonus is out of boundaries).
-    maxBonus: 10, // Default: 10.
-    minBonus: 0,  // Default: 0.
+    fieldsCaseInsensitive: false,
 
     // Filters the item to be loaded from the results file.
     // If `function`, it should return FALSE, to skip an item.
@@ -76,13 +109,30 @@ module.exports =  {
 
     // Options below can be overwritten by command-line parameters.
 
+    // ## Safety settings.
+    
+    // TRUE if the API should connect to the the Sandbox.
     sandbox: true,
 
-    HITId: 'XXX',
+    // Dry-run (no request actually sent to server).
+    dry: false,
+
+    // ## Options shared with all workers.
+
+    // Bonus Boundaries (an error will be thrown if bonus is out of boundaries).
+    maxBonus: 10, // Default: 10.
+    minBonus: 0,  // Default: 0.
+
+    // The id of the HIT.
+    // This value can be left undefined if not known.
+    // HITId: 'XXX',
 
     // Id of the qualification to assign upon approving/rejecting
     // an assignment. Default: undefined.
-    QualificationTypeId: 'YYY',
+    // This value can be fetched via API.
+    // QualificationTypeId: 'YYY',
+
+    // ## Technical settings.
 
     // Turker is notified when a qualification is granted.
     SendNotification: false,
@@ -90,18 +140,6 @@ module.exports =  {
     // Unique token to send for sensitive operations to AMT server.
     // Default: 3000.
     UniqueRequestToken: 1234,
-
-    // Dry-run (no request sent to server).
-    dry: false,
-
-    // Path to a results file. Default: undefined.
-    resultsFile: 'path/to/results/file',
-
-    // Path to a input codes file. Default: undefined.
-    inputCodesFile: 'path/to/input/codes/file',
-    
-    // Validation level for results.
-    validateLevel: 2,
 
     // Number of attempts to repeat a request if an error occurs.
     nRetries: 0,
