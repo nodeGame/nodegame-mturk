@@ -16,7 +16,7 @@
          "nodegame-client": "*",
          "mturk-api": ">= 3.0.2",
          "JSUS": "*",
-         "NDDB": "*",
+         "NDDB": ">= 1.18.0",
          "commander": "*",
          "vorpal": "*",
          "fs-extra": "*",
