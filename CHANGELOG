@@ -1,6 +1,9 @@
 # CHANGELOG
 
-## 4.2.0 (current)
+## 5.0.0
+- No changes.
+
+## 4.2.0
 - Filter function working.
 - AutoApprove setting.
 - Improved template configuration.
