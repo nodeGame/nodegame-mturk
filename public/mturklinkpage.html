@@ -43,7 +43,7 @@
             <br>
             it means that we reached the maximum number of simultaneous
             participants for this session. Please return the HIT, you
-            will still be able to join future sessions of this HIT.
+            will still be able to join future sessions.
             
           </li>
           
@@ -196,8 +196,6 @@
         </p>               
         <!-- End Consent Form -->
         
-        <input type='hidden' value='' name='assignmentId' id='assignmentId'/>
-        
         <!-- Begin Link to Game  -->
         <br /><br />
         <h3>After Completing the Task</h3>
@@ -277,7 +275,7 @@
             el = document.getElementById('before-accept');
             errStr = 'An error occurred generating your access-code';
             errStr += err ? (': ' + err) : '.';
-            errStr += 'Try refreshing the page, and if ' +
+            errStr += 'Try refreshing the page and if ' +
                 'the problem persists you must return the HIT. ' +
                 'We apologize for the inconvenience.';
             el.innerHTML = errStr;
