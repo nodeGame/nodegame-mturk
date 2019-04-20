@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 5.1.0
+- Updated to winston 3.x
+
 ## 5.0.0
 - No changes.
 
