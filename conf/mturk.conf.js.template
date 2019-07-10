@@ -2,10 +2,12 @@ module.exports =  {
 
     // ## AWS secret and access.
 
-    access : 'YOUR_ACCESS_CODE',
-    secret : 'YOUR_SECRET',
+    access: 'YOUR_ACCESS_CODE',
+    secret: 'YOUR_SECRET',
 
     // All settings below are optional.
+
+    region: 'us-east-1',
 
     // ## Files settings.
 
