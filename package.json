@@ -21,13 +21,14 @@
         "node": ">= 10.0.0"
     },
     "dependencies": {
-        "api-mturk": ">= 1.1.7",
         "JSUS": "*",
         "NDDB": ">= 1.18.0",
+        "api-mturk": ">= 1.1.7",
         "commander": "*",
-        "vorpal": "*",
         "fs-extra": "*",
+        "inquirer": "*",
         "underscore": "*",
+        "vorpal": "*",
         "winston": ">= 3.0.0"
     },
     "license": "MIT",
