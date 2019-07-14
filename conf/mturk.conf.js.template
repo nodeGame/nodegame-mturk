@@ -101,8 +101,8 @@ module.exports =  {
     // Case of the fields.
     // If TRUE, fields names as written in `fields` are case-insensitive.
     // Note: fast-comparison is executed:, fields are loaded from the first
-    // item in the database, and assumed that are identical  across all items.
-    fieldsCaseInsensitive: false,
+    // item in the database, and assumed that are identical across all items.
+    fieldsCaseInsensitive: true,
 
     // Callback function to filter items to load from the results file.
     // If function returns FALSE item is skipped, and no check is performed.
