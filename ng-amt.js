@@ -78,7 +78,9 @@ function startVorpal() {
 function loadGame(cb) {
     // TODO: fix parameter naming.
     program.path = program.game;
-    program.limit = program.rawArgs[4];
+    // The limit parameter is the next after the game.
+    let indexLimit = program.rawArgs.indexOf(program.game) + 1;
+    program.limit = program.rawArgs[indexLimit];
     codes.loadGame(program, cb);
 }
 
