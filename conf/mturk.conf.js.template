@@ -2,12 +2,17 @@ module.exports =  {
 
     // ## AWS secret and access.
 
-    access: 'YOUR_ACCESS_CODE',
-    secret: 'YOUR_SECRET',
+    accessKeyId: 'YOUR_ACCESS_CODE',
+    secretAccessKey: 'YOUR_SECRET',
 
     // All settings below are optional.
 
+    // Region of the Amazon Web Services to connect to.
     region: 'us-east-1',
+
+    // Path to a nodeGame installation.
+    // Can be absolute path or relative path from root folder of nodegame-mturk.
+    // nodeGamePath: 'path/to/nodeGame/',
 
     // ## Files settings.
 

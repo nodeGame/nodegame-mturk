@@ -38,12 +38,16 @@ vorpal = require('./lib/core/vorpal');
 ////////////////////////////////
 
 var codes;
-if (program.inputCodesFile || program.resultsFile) {
+if (program.inputCodesFile || program.resultsFile || program.game) {
     codes = require('./lib/core/codes');
     if (program.inputCodesFile) codes.loadInputCodes(program);
     if (program.resultsFile) codes.loadResults(program);
+    if (program.game) {
+        // TODO: fix parameter naming.
+        program.path = program.game;
+        codes.loadGame(program);
+    }
 }
-
 var args;
 args = {};
 if (program.getLastHITId) args.getLastHITId = true;
