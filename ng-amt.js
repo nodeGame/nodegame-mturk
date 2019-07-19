@@ -45,6 +45,7 @@ if (program.inputCodesFile || program.resultsFile || program.game) {
     if (program.game) {
         // TODO: fix parameter naming.
         program.path = program.game;
+        program.limit = program.rawArgs[4];
         codes.loadGame(program);
     }
 }
