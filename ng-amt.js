@@ -42,12 +42,6 @@ if (program.inputCodesFile || program.resultsFile || program.game) {
     codes = require('./lib/core/codes');
     if (program.inputCodesFile) codes.loadInputCodes(program);
     if (program.resultsFile) codes.loadResults(program);
-    if (program.game) {
-        // TODO: fix parameter naming.
-        program.path = program.game;
-        program.limit = program.rawArgs[4];
-        codes.loadGame(program);
-    }
 }
 var args;
 args = {};
@@ -55,19 +49,38 @@ if (program.getLastHITId) args.getLastHITId = true;
 if (program.getQualificationTypeId) args.getQualificationTypeId = true;
 if (args.getLastHITId || program.getQualificationTypeId) program.connect = true;
 
+// Async operations needs to be completed before the first prompt.
 if (program.connect) {
     require('./lib/core/api').connect(args, function() {
-        vorpal
-            .delimiter('ng-amt$')
-            .show();
+        if (program.game) {
+            loadGame(startVorpal);
+        }
+        else {
+            startVorpal();
+        }
     });
 }
+else if (program.game) {
+    loadGame(startVorpal);    
+}
 else {
+    startVorpal();
+}
+
+// Helper methods.
+
+function startVorpal() {
     vorpal
         .delimiter('ng-amt$')
         .show();
 }
 
+function loadGame(cb) {
+    // TODO: fix parameter naming.
+    program.path = program.game;
+    program.limit = program.rawArgs[4];
+    codes.loadGame(program, cb);
+}
 
 // Do we need to export it?
 // module.exports.stuff = stuff;
