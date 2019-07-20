@@ -161,7 +161,7 @@ info: **** Balance ****
 info: Your balance is: $1,000
 ```
 
-- **Approve/Reject** all results
+- **Approve/Reject results**
 
 ```javascript
 ng-amt$ uploadResults
@@ -177,7 +177,7 @@ error: approve/reject failed: 0
 info: Original balance: $1,000 New balance: $993 (diff: 7)
 ```
 
-- **Grant a Bonus** with a message.
+- **Grant a Bonus**.
 
 ```javascript
 ng-amt$ grantBonus -r "Thank You"
