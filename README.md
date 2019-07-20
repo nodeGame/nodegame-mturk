@@ -177,7 +177,7 @@ error: approve/reject failed: 0
 info: Original balance: $1,000 New balance: $993 (diff: 7)
 ```
 
-- **Grant a Bonus**.
+- **Grant a Bonus**
 
 ```javascript
 ng-amt$ grantBonus -r "Thank You"
