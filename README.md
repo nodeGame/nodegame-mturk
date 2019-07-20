@@ -213,7 +213,7 @@ info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
 ```
 
 The command above returns the last created HIT. If your HIT is not the
-last one, you can search through the list of most recent HITs.\\
+last one, you can search through the list of most recent HITs.
 
 ```javascript
 ng-amt$ get HITIdList
