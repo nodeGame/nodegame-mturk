@@ -47,12 +47,14 @@ More options available directly in the configuration file.
 
 ## Usage
 
-Start the program from the command line
+### Launch the program
+
+Start the program from the command line:
 
     node ng-amt.js
 
-You can pass any of the following options inline (the short and
-long form of each command are equivalent).
+These are the main inline options to use when you start the program
+(the short and long form of each command are equivalent).
 
   **-c, --connect**: Opens the connection with MTurk Server
 
@@ -60,7 +62,7 @@ long form of each command are equivalent).
 
   **-g, --game <gameFolder> [minRoom-maxRoom]**: Path to a nodeGame game and optional room boundaries
 
-  **-Q, --getQualificationTypeId**: Fetches the first qualification type owned by requester from AMT
+  **-Q, --getQualificationTypeId**: Fetches the last qualification type owned by requester
 
   **-H, --getLastHITId**: Fetches the id of the latest HIT
 
@@ -68,7 +70,7 @@ long form of each command are equivalent).
 
   **-h, --help**: Output usage information
 
-### Other inline options
+#### Other inline options
 
   **-C, --config <confFile>**: Specifies a configuration file
 
@@ -86,19 +88,32 @@ long form of each command are equivalent).
 
   **-q, --quiet**: No/minimal output printed to console
 
-Then you have access to the interactive console.
+### Interactive Prompt
 
-connect                         Creates the AWS client.
-uploadResults [options]         Uploads the results to AMT server (approval+bonus+qualification).
-grantBonus [options]            Grants bonuses as specified in results codes.
-assignQualification [options]   Assigns a Qualification to all results codes.
-get <what>                      Fetches and stores the requested info.
-load [options] <what> <path>    Loads a file.
-show [options] <what>           Prints out the requested info.
-extendHIT [options]             Extends the HIT.
-expireHIT                       Expires the HIT.
-help [command...]               Provides help for a given command.
-exit                            Exits application.
+After the you started the program, you have access to the interactive
+console with the following commands:
+
+**connect**:                         Creates the AWS client.
+
+**uploadResults [options]**:         Uploads the results to AMT server (approval+bonus+qualification).
+
+**grantBonus [options]**:            Grants bonuses as specified in results codes.
+
+**assignQualification [options]**:   Assigns a Qualification to all results codes.
+
+**get <what>**:                      Fetches and stores the requested info.
+
+**load [options] <what> <path>**:    Loads a file.
+
+**show [options] <what>**:           Prints out the requested info.
+
+**extendHIT [options]**:             Extends the HIT.
+
+**expireHIT**:                       Expires the HIT.
+
+**help [command...]**:               Provides help for a given command.
+
+**exit**:                            Exits application.
 
 Use TAB to autocomplete commands and options.
 
