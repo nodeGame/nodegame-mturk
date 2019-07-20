@@ -260,7 +260,7 @@ The commands looks for files saved as `bonus.csv`, `results.csv`, or
 
 ## Use programmatically
 
-```bash
+```javascript
 var ngamt = require('nodegame-mturk')( { config: 'path/to/config.js' });
 // Connect and fetch last HIT Id (async).
 ngamt.api.connect({ getLastHITId: true });
