@@ -242,6 +242,21 @@ info: expiration:    Tue Feb 14 2017 10:38:04 GMT-0500 (EST)
 info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
 ```
 
+- **Load all results from nodeGame**
+
+```javascript
+ng-amt$ load Game mygame -l 60-61
+
+info: loading rooms of game mygame
+info: scanning data folder minRoom=60 maxRoom=61
+warn: no results in room room000060
+info: loading results file: room000061
+info: results file: C:\Users\me\nodegame-v5.0.0-dev\games\mygame\data\room000061\bonus.csv
+info: result codes: 1
+```
+
+The commands looks for files saved as `bonus.csv`, `results.csv`, or
+`codes.csv` in each directory and loads them.
 
 ## Use programmatically
 
