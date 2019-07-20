@@ -125,7 +125,7 @@ Use TAB to autocomplete commands and options.
 Here we load a results file,  retrieve the last HIT Id and last
 Qualification Id.
 
-```javascript
+```bash
 $ node ng-amt -r path/to/results/file.csv -H -Q
 
 info: sandbox-mode: on
@@ -139,7 +139,7 @@ info: retrieved last HIT id: YYYYYYYYYYYYYYYYYYY ("My Task Name")
 ```
 - **Show a summary**
 
-```javascript
+```bash
 ng-amt~$ show Summary
 info: **** Results ****
 info: tot results: 9
@@ -163,7 +163,7 @@ info: Your balance is: $1,000
 
 - **Approve/Reject results**
 
-```javascript
+```bash
 ng-amt$ uploadResults
 info: tot results: 9
 info: to approve:  9
@@ -179,7 +179,7 @@ info: Original balance: $1,000 New balance: $993 (diff: 7)
 
 - **Grant a Bonus**
 
-```javascript
+```bash
 ng-amt$ grantBonus -r "Thank You"
 ```
 
@@ -187,7 +187,7 @@ The option -r is required.
 
 - **Assign a Qualification**
 
-```javascript
+```bash
 ng-amt$ assignQualification -i 1
 ```
 
@@ -198,7 +198,7 @@ qualifications.
 
 - **Get HIT Id**
 
-```javascript
+```bash
 ng-amt$ get HITId
 info: retrieved last HIT id: ****************AADIVNV ("Name of the HIT")
 ng-amt$ get HITStatus
@@ -215,7 +215,7 @@ info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
 The command above returns the last created HIT. If your HIT is not the
 last one, you can search through the list of most recent HITs.
 
-```javascript
+```bash
 ng-amt$ get HITIdList
 ? Select a HIT
   1) 7/20/2019 - ***********************YYNG27N Label Tweets ($1.00)
@@ -244,7 +244,7 @@ info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
 
 - **Load all results from nodeGame**
 
-```javascript
+```bash
 ng-amt$ load Game mygame -l 60-61
 
 info: loading rooms of game mygame
@@ -260,7 +260,7 @@ The commands looks for files saved as `bonus.csv`, `results.csv`, or
 
 ## Use programmatically
 
-```javascript
+```bash
 var ngamt = require('nodegame-mturk')( { config: 'path/to/config.js' });
 // Connect and fetch last HIT Id (async).
 ngamt.api.connect({ getLastHITId: true });
