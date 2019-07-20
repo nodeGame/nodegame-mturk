@@ -1,4 +1,4 @@
-# nodegame-mturk 
+# nodegame-mturk
 
 An interactive console to handle basic operations with Amazon Mechanical Turk
 (MTurk) HITs.
@@ -16,7 +16,7 @@ This package can operate in two modes:
 Create file `conf/mturk.conf.js` using the template in the same
 directory.
 
-Add your Amazon Web Service (AWS) Keys in the conf file: 
+Add your Amazon Web Service (AWS) Keys in the conf file:
 
 - **accessKeyId**: 'XXX',
 
@@ -51,37 +51,40 @@ Start the program from the command line
 
     node ng-amt.js
 
-You can pass any of the following options:
+You can pass any of the following options inline (the short and
+long form of each command are equivalent).
+
+  **-c, --connect**: Opens the connection with MTurk Server
+
+  **-r, --resultsFile <resultsFile>**: Path to a results file with Exit and Access Codes
+
+  **-g, --game <gameFolder> [minRoom-maxRoom]**: Path to a nodeGame game and optional room boundaries
+
+  **-Q, --getQualificationTypeId**: Fetches the first qualification type owned by requester from AMT
+
+  **-H, --getLastHITId**: Fetches the id of the latest HIT
+
+  **-s, --sandbox**: Activate sandbox mode
+
+  **-h, --help**: Output usage information
+
+### Other inline options
 
   **-C, --config <confFile>**: Specifies a configuration file
-  
-  -**c, --connect**: Opens the connection with MTurk Server
-  
-  -**r, --resultsFile <resultsFile>**: Path to a results file with Exit and Access Codes
-  
-  -**i, --inputCodesFile <inputCodesFile>**: Path to a codes file with Exit and Access Codes
-  
-  -**g, --game <gameFolder> [minRoom-maxRoom]**: Path to a nodeGame game and optional room boundaries
-  
-  -**Q, --getQualificationTypeId**: Fetches the first qualification type owned by requester from AMT
-  
-  -**H, --getLastHITId**: Fetches the id of the latest HIT
-  
-  -**t, --token [token]**: Unique token for one-time operations
-  
-  -**s, --sandbox**: Activate sandbox mode
-  
-  -**d, --dry**: Dry-**run: does not actually send any request to server
-  
-  -**n, --nRetries <nRetries>**: How many times a request is repeated in case of error (Def: 0)
-  
-  -**l, --retryInterval <rInterval>**: Milliseconds to wait before a request is repeated (Def: 10000)
-  
-  -**o, --throttleInterval <tInterval>**: Milliseconds between two consecutive requests (Def: 500)
-  
-  -**q, --quiet**: No/minimal output printed to console
-  
-  -**h, --help**: Output usage information
+
+  **-i, --inputCodesFile <inputCodesFile>**: Path to a codes file with Exit and Access Codes
+
+  **-t, --token [token]**: Unique token for one-time operations
+
+  **-d, --dry**: Dry-run: does not actually send any request to server
+
+  **-n, --nRetries <nRetries>**: How many times a request is repeated in case of error (Def: 0)
+
+  **-l, --retryInterval <rInterval>**: Milliseconds to wait before a request is repeated (Def: 10000)
+
+  **-o, --throttleInterval <tInterval>**: Milliseconds between two consecutive requests (Def: 500)
+
+  **-q, --quiet**: No/minimal output printed to console
 
 Then you have access to the interactive console.
 
@@ -145,7 +148,7 @@ info: Your balance is: $1,000
 - **Approve/Reject** all results
 
 ```
-ng-amt$ uploadResults 
+ng-amt$ uploadResults
 info: tot results: 9
 info: to approve:  9
 info: to reject:   0
@@ -180,10 +183,10 @@ qualifications.
 - **Get HIT Id**
 
 ```
-ng-amt$ get HITId 
+ng-amt$ get HITId
 info: retrieved last HIT id: ****************AADIVNV ("Name of the HIT")
-ng-amt$ get HITStatus 
-info: **** HIT Status **** 
+ng-amt$ get HITStatus
+info: **** HIT Status ****
 info: id:            ****************AADIVNV
 info: status:        NotReviewed
 info: pending ass:   0
@@ -212,8 +215,8 @@ ng-amt$ get HITIdList
 - **Get the Status of a running HIT**
 
 ```
-ng-amt$ get HITStatus 
-info: **** HIT Status **** 
+ng-amt$ get HITStatus
+info: **** HIT Status ****
 info: id:            ****************AADIVNV
 info: status:        NotReviewed
 info: pending ass:   0
