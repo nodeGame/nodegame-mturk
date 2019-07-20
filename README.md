@@ -230,7 +230,7 @@ ng-amt$ get HITIdList
 
 - **Get the Status of a running HIT**
 
-```javascript
+```bash
 ng-amt$ get HITStatus
 info: **** HIT Status ****
 info: id:            ****************AADIVNV
