@@ -5,31 +5,93 @@ An interactive console to handle basic operations with Amazon Mechanical Turk
 
 ## Purpose
 
-The package is intended to support integration between nodeGame and
-Amazon Mechanical Turk services, however, it can be as well used as a
-standalone application without nodeGame.
+This package can operate in two modes:
 
-## Config
+- **standalone mode**: import a compatible results file from MTurk;
+- **nodeGame mode**: automatically scan the data folder of a nodeGame game
+  and import all results files foundq.
+
+## Configuration
 
 Create file `conf/mturk.conf.js` using the template in the same
-directory. 
+directory.
 
-Things you need to specify: 
+Add your Amazon Web Service (AWS) Keys in the conf file: 
 
-- your Mturk API keys.
+- **accessKeyId**: 'XXX',
 
-Things you might want to specify:
+- **secretAccessKey**: 'YYY'
 
-- change the names of the configuration fields to match the names of headers in
-your results file (Important! AMT default separator is ;).
-- add a filter function to skip items that should not be processed
-- add auto-approve 
-- add reason for bonus
+If you do not have your keys yet, please read
+[here](https://aws.amazon.com/kms/).
+
+### Optional Configuration Settings
+
+- **region**: the AWS server you want to connect to. Default: 'us-east-1'.
+
+- **nodeGamePath**: the absolute path, or relative path from root folder
+of nodegame-mturk module to a nodeGame installation directory. Needed
+if you want to automatically import results files from nodeGame.
+
+- **fields**: object specifiying the names of the fields for
+non-standard results files (Important! MTurk default separator is ;).
+
+- **filter**: a function to skip items that should not be processed.
+
+- **autoApprove**: A boolean flag specifying to auto-approve all
+imported assignments. Default: false.
+
+- **sandbox**: Operates in sandbox mode. Default: false
+
+More options available directly in the configuration file.
+
+## Usage
+
+Start the program from the command line
+
+    node ng-amt.js
+
+You can pass any of the following options:
+
+  -C, --config <confFile>                    Specifies a configuration file
+  -c, --connect                              Opens the connection with MTurk Server
+  -r, --resultsFile <resultsFile>            Path to a results file with Exit and Access Codes
+  -i, --inputCodesFile <inputCodesFile>      Path to a codes file with Exit and Access Codes
+  -g, --game <gameFolder> [minRoom-maxRoom]  Path to a nodeGame game and optional room boundaries
+  -Q, --getQualificationTypeId               Fetches the first qualification type owned by requester from AMT
+  -H, --getLastHITId                         Fetches the id of the latest HIT
+  -t, --token [token]                        Unique token for one-time operations
+  -s, --sandbox                              Activate sandbox mode
+  -d, --dry                                  Dry-run: does not actually send any request to server
+  -n, --nRetries <nRetries>                  How many times a request is repeated in case of error (Def: 0)
+  -l, --retryInterval <rInterval>            Milliseconds to wait before a request is repeated (Def: 10000)
+  -o, --throttleInterval <tInterval>         Milliseconds between two consecutive requests (Def: 500)
+  -q, --quiet                                No/minimal output printed to console
+  -h, --help                                 output usage information
+
+Then you have access to the interactive console.
+
+connect                         Creates the AWS client.
+uploadResults [options]         Uploads the results to AMT server (approval+bonus+qualification).
+grantBonus [options]            Grants bonuses as specified in results codes.
+assignQualification [options]   Assigns a Qualification to all results codes.
+get <what>                      Fetches and stores the requested info.
+load [options] <what> <path>    Loads a file.
+show [options] <what>           Prints out the requested info.
+extendHIT [options]             Extends the HIT.
+expireHIT                       Expires the HIT.
+help [command...]               Provides help for a given command.
+exit                            Exits application.
+
+Use TAB to autocomplete commands and options.
+
 
 ## Examples
 
-- Start a prompt with a loaded **results file**, and retrieve the last HIT
-and last Qualification.
+- **Start the program with initial options**
+
+Here we load a results file,  retrieve the last HIT Id and last
+Qualification Id.
 ```
 $ node ng-amt -r path/to/results/file.csv -H -Q
 
@@ -42,7 +104,7 @@ info: done.
 info: retrieved QualificationTypeId: XXXXXXXXXXXXXXXXXXX ("My Qualification")
 info: retrieved last HIT id: YYYYYYYYYYYYYYYYYYY ("My Task Name")
 ```
-- Show a **summary** of the results.
+- **Show a summary**
 
 ```
 ng-amt~$ show Summary
@@ -66,7 +128,7 @@ info: **** Balance ****
 info: Your balance is: $1,000
 ```
 
-- **Approve/Reject** all results.
+- **Approve/Reject** all results
 
 ```
 ng-amt$ uploadResults 
@@ -82,20 +144,26 @@ error: approve/reject failed: 0
 info: Original balance: $1,000 New balance: $993 (diff: 7)
 ```
 
-- **Grant Bonus** with a message to all results.
+- **Grant a Bonus** with a message.
 
 ```
-ng-amt$ grantBonus -r "Thank You."
+ng-amt$ grantBonus -r "Thank You"
 ```
 
-- **Assign Qualification** to all results.
+The option -r is required.
+
+- **Assign a Qualification**
 
 ```
-ng-amt$ assignQualification
+ng-amt$ assignQualification -i 1
 ```
 
+The option -i is required. It assigns an integer value for the
+qualification. Any positive value can be specified. You can use
+different values to differentiate between participants with the same
+qualifications.
 
-- **Get HIT Id and Status**
+- **Get HIT Id**
 
 ```
 ng-amt$ get HITId 
@@ -111,25 +179,36 @@ info: expiration:    Tue Feb 14 2017 10:38:04 GMT-0500 (EST)
 info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
 ```
 
-- **Complete help**
+The command above returns the last created HIT. If your HIT is not the
+last one, you can search through the list of most recent HITs.\\
 
 ```
-ng-amt$ help
-
-  Commands:
-
-    help [command...]               Provides help for a given command.
-    exit                            Exits application.
-    connect                         
-    extendHIT [options]             Extends the HIT.
-    expireHIT                       Expires the HIT
-    uploadResults [options]         Uploads the results to AMT server (approval+bonus+qualification)
-    grantBonus [options]            Grants bonuses as specified in results codes
-    assignQualification [options]   Assigns a Qualification to all results codes
-    get <what>                      Fetches and stores the requested info
-    load [options] <what> <path>    Loads a file
-    show [options] <what>           Prints out the requested info
+ng-amt$ get HITIdList
+? Select a HIT
+  1) 7/20/2019 - ***********************YYNG27N Label Tweets ($1.00)
+  2) 7/20/2019 - ***********************JS8T6I3 Ultimatum Game ($1.00)
+  3) 7/19/2019 - ***********************UC8RXR8 Prisoner Dilemma ($3.00)
+  4) 7/18/2019 - ***********************0IBHN5N Understanding Others ($0.85)
+  5) 7/12/2019 - ***********************Z82S7GA Tell a joke ($0.25)
+  6) 7/11/2019 - ***********************FCXM1KN Estimating product preferences ($1.00)
+(Move up and down to reveal more choices)
+  Answer:
 ```
+
+- **Get the Status of a running HIT**
+
+```
+ng-amt$ get HITStatus 
+info: **** HIT Status **** 
+info: id:            ****************AADIVNV
+info: status:        NotReviewed
+info: pending ass:   0
+info: available ass: 49
+info: completed ass: 0
+info: expiration:    Tue Feb 14 2017 10:38:04 GMT-0500 (EST)
+info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
+```
+
 
 ## Use programmatically
 
