@@ -53,36 +53,35 @@ Start the program from the command line
 
 You can pass any of the following options:
 
-  -C, --config <confFile>                    Specifies a configuration
-  file
+  **-C, --config <confFile>**: Specifies a configuration file
   
-  -c, --connect                              Opens the connection with MTurk Server
+  -**c, --connect**: Opens the connection with MTurk Server
   
-  -r, --resultsFile <resultsFile>            Path to a results file with Exit and Access Codes
+  -**r, --resultsFile <resultsFile>**: Path to a results file with Exit and Access Codes
   
-  -i, --inputCodesFile <inputCodesFile>      Path to a codes file with Exit and Access Codes
+  -**i, --inputCodesFile <inputCodesFile>**: Path to a codes file with Exit and Access Codes
   
-  -g, --game <gameFolder> [minRoom-maxRoom]  Path to a nodeGame game and optional room boundaries
+  -**g, --game <gameFolder> [minRoom-maxRoom]**: Path to a nodeGame game and optional room boundaries
   
-  -Q, --getQualificationTypeId               Fetches the first qualification type owned by requester from AMT
+  -**Q, --getQualificationTypeId**: Fetches the first qualification type owned by requester from AMT
   
-  -H, --getLastHITId                         Fetches the id of the latest HIT
+  -**H, --getLastHITId**: Fetches the id of the latest HIT
   
-  -t, --token [token]                        Unique token for one-time operations
+  -**t, --token [token]**: Unique token for one-time operations
   
-  -s, --sandbox                              Activate sandbox mode
+  -**s, --sandbox**: Activate sandbox mode
   
-  -d, --dry                                  Dry-run: does not actually send any request to server
+  -**d, --dry**: Dry-**run: does not actually send any request to server
   
-  -n, --nRetries <nRetries>                  How many times a request is repeated in case of error (Def: 0)
+  -**n, --nRetries <nRetries>**: How many times a request is repeated in case of error (Def: 0)
   
-  -l, --retryInterval <rInterval>            Milliseconds to wait before a request is repeated (Def: 10000)
+  -**l, --retryInterval <rInterval>**: Milliseconds to wait before a request is repeated (Def: 10000)
   
-  -o, --throttleInterval <tInterval>         Milliseconds between two consecutive requests (Def: 500)
+  -**o, --throttleInterval <tInterval>**: Milliseconds between two consecutive requests (Def: 500)
   
-  -q, --quiet                                No/minimal output printed to console
+  -**q, --quiet**: No/minimal output printed to console
   
-  -h, --help                                 output usage information
+  -**h, --help**: Output usage information
 
 Then you have access to the interactive console.
 
