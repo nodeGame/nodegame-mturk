@@ -47,8 +47,8 @@ If you do not have your keys yet, please read
 
 - **region**: the AWS server you want to connect to. Default: 'us-east-1'.
 
-- **nodeGamePath**: the absolute path, or relative path from root folder
-of nodegame-mturk module to a nodeGame installation directory. Needed
+- **nodeGamePath**: the absolute path, or relative path from the root folder of
+the nodegame-mturk directory, to a nodeGame installation directory. Needed only
 if you want to automatically import results files from nodeGame.
 
 - **fields**: object specifiying the names of the fields for
