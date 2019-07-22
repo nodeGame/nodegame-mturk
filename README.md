@@ -1,15 +1,33 @@
 # nodegame-mturk
 
-An interactive console to handle basic operations with Amazon Mechanical Turk
-(MTurk) HITs.
+Handles operations with Amazon Mechanical Turk (MTurk), such as approve/reject
+HITS, grant bonuses, assign qualifications, etc.
 
-## Purpose
+## Decription
 
-This package can operate in two modes:
+It can be used as an interactive console or can be called programmatically.
+
+As an interactive console, it can operate in two modes:
 
 - **standalone mode**: import a compatible results file from MTurk;
 - **nodeGame mode**: automatically scan the data folder of a nodeGame game
   and import all results files found.
+
+## Installation
+
+- **Stable**:
+
+```
+npm install nodegame-mturk
+```
+
+- **Development**:
+
+```
+git clone https://github.com/nodeGame/nodegame-mturk.git
+cd nodegame-mturk
+npm install
+```
 
 ## Configuration
 
