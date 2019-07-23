@@ -40,8 +40,14 @@ vorpal = require('./lib/core/vorpal');
 var codes;
 if (program.inputCodesFile || program.resultsFile || program.game) {
     codes = require('./lib/core/codes');
-    if (program.inputCodesFile) codes.loadInputCodes(program);
-    if (program.resultsFile) codes.loadResults(program);
+    if (program.inputCodesFile) {
+        program.path = program.inputCodesFile;
+        codes.loadInputCodes(program);
+    }
+    if (program.resultsFile) {
+        program.path = program.resultsFile;
+        codes.loadResults(program);
+    }
 }
 var args;
 args = {};
