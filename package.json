@@ -22,14 +22,14 @@
     },
     "dependencies": {
         "JSUS": "*",
-        "NDDB": ">= 1.18.0",
-        "api-mturk": ">= 1.1.7",
+        "NDDB": "^1.18.0",
+        "api-mturk": "^1.1.7",
         "commander": "*",
         "fs-extra": "*",
-        "inquirer": "*",
+        "inquirer": "^6.0.0",
         "underscore": "*",
         "vorpal": "*",
-        "winston": ">= 3.0.0"
+        "winston": "^3.0.0"
     },
     "license": "MIT",
     "main": "index.js"
