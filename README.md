@@ -59,6 +59,15 @@ non-standard results files (Important! MTurk default separator is ;).
 - **autoApprove**: A boolean flag specifying to auto-approve all
 imported assignments. Default: false.
 
+- **maxBonus**: maximum bonus payable, an error will be raised
+    otherwise. Default: 10USD.
+
+- **minBonus**: minimum bonus payable, an error will be raised
+    otherwise. Default: 0USD.
+
+- **autoApprove**: A boolean flag specifying to auto-approve all
+imported assignments. Default: false.
+
 - **sandbox**: Operates in sandbox mode. Default: false
 
 More options available directly in the configuration file.
