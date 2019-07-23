@@ -210,7 +210,7 @@ info: Original balance: $1,000 New balance: $993 (diff: 7)
 ng-amt$ grantBonus -r "Thank You"
 ```
 
-The option -r is required.
+The reason (option -r) is required.
 
 - **Assign a Qualification**
 
