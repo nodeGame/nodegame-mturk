@@ -84,10 +84,10 @@ module.exports =  {
     //     // Can also be fetched via API.
     //     qualificationTypeId: 'QualificationTypeId',
     //
-    //     // A value for the qualification. Default 1.    
+    //     // A value for the qualification. Default 1.
     //     integerValue: 'IntegerValue',
     //
-    //     // A message given to the worker alongside his/her bonus. 
+    //     // A message given to the worker alongside his/her bonus.
     //     reason: 'Reason',
     //
     //     // The assignment status.
@@ -99,8 +99,13 @@ module.exports =  {
     //     // A message that the worker can see alongside his/her status.
     //     // This field is usually needed when the requester need to approve
     //     // a previously rejected assignment.
-    //     requesterFeedback: 'RequesterFeedback'
-
+    //     requesterFeedback: 'RequesterFeedback',
+    //
+    //     // Sends a notification when a qualification is assigned.
+    //     sendNotification: 'SendNotification',
+    //
+    //     // Unique token for request
+    //     uniqueRequestToken: 'UniqueRequestToken'
     },
 
     // Case of the fields.
@@ -118,7 +123,7 @@ module.exports =  {
     // Options below can be overwritten by command-line parameters.
 
     // ## Safety settings.
-    
+
     // TRUE if the API should connect to the the Sandbox.
     sandbox: true,
 
