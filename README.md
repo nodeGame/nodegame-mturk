@@ -240,7 +240,7 @@ info: annotation:    BatchId:***641;OriginalHitTemplateId:****37243;
 ```
 
 The command above returns the last created HIT. If your HIT is not the
-last one, you can search through the list of most recent HITs.
+last one, you can search through the list of 10 most recent HITs.
 
 ```bash
 ng-amt$ get HITIdList
@@ -253,6 +253,38 @@ ng-amt$ get HITIdList
   6) 7/11/2019 - ***********************FCXM1KN Estimating product preferences ($1.00)
 (Move up and down to reveal more choices)
   Answer:
+```
+
+- **Get Qualification Id**
+
+```bash
+ng-amt$ get QualificationTypeId
+info: set QualificationTypeId: ***************WZ8QQ6QO ("my_qualification")
+```
+
+The command above returns the last qualification. You can search through the
+list of the 10 most recent Qualifications.
+
+```bash
+ng-amt$ get QualificationTypeIdList 
+? Select a QualificationType 
+  1) 4/20/2019 my_qualification
+  2) 11/20/2018 another_qualification
+  3) 8/7/2018 what_is_this_for
+  4) 7/4/2018 you_made_it
+  5) 6/4/2018 you_are_definitely_qualified
+  6) 6/3/2018 you_are_unqualifiable
+(Move up and down to reveal more choices)
+  Answer: 
+```bash
+
+If you still do not find it, you can add a search query.
+
+```
+ng-amt$ get QualificationTypeIdList -s Finished
+? Select a QualificationType 
+  1) 7/21/2017 Finished_my_study
+  Answer: 
 ```
 
 - **Get the Status of a running HIT**
