@@ -320,12 +320,20 @@ The commands looks for files saved as `bonus.csv`, `results.csv`, or
 ## Use programmatically
 
 ```javascript
-var ngamt = require('nodegame-mturk')( { config: 'path/to/config.js' });
-// Connect and fetch last HIT Id (async).
-ngamt.api.connect({ getLastHITId: true });
-// Expire HIT.
-ngamt.modules.manageHIT.expire(function(err) {
-   // Do something
+// Require ngmt.
+var ngmt = require('nodegame-mturk')();
+// Or with a custom config file
+// var ngmt = require('nodegame-mturk')({ config: 'path/to/config.js'
+});
+
+// Connect, fetch last HIT Id (async), and then assign it to a worker.
+
+ngmt.api.connect({ getLastHITId: true }, function() {
+    ngmt.modules.qualification.assign({
+        WorkerId: XXXXXXXXX',
+        QualificationTypeId: ngmt.config.qualificationId,
+        IntegerValue: 1
+    });
 });
 ```
 
