@@ -10,6 +10,12 @@ module.exports =  {
     // Region of the Amazon Web Services to connect to.
     region: 'us-east-1',
 
+    // Qualitification Type Id (Default: none).
+    // QualificationTypeId: 'XXXXXXXXXXXXXX',
+
+    // HIT Id (Default: none).
+    // HITId: 'XXXXXXXXXXXXXX',
+
     // Path to a nodeGame installation.
     // Can be absolute path or relative path from root folder of nodegame-mturk.
     // nodeGamePath: 'path/to/nodeGame/',
