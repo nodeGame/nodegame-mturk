@@ -54,10 +54,9 @@ if you want to automatically import results files from nodeGame.
 - **fields**: object specifiying the names of the fields for
 non-standard results files (Important! MTurk default separator is ;).
 
-- **filter**: a function to skip items that should not be
-  processed: if it  returns TRUE item is kept, if FALSE,
-  skipped. Default: if type is 'bot' or if 'skip' is truthy, item is
-  skipped.
+- **filter**: a function to filter items before importing them: must
+  return falsy to skip them or truthy to keep them. Default: items are
+  skipped if `type` is equal to 'bot' or if 'skip' is truthy.
 
 - **autoApprove**: A boolean flag specifying to auto-approve all
 imported assignments. Default: false.
