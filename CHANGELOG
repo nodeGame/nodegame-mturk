@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Current
+- Filter using truthy values instead of true/false.
+- Filter is on by default and it skips item of type 'bot' or item with 'skip' truthy.
+
 ## 5.1.0
 - Updated to winston 3.x
 
