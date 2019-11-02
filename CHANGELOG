@@ -1,8 +1,11 @@
 # CHANGELOG
 
-## Current
+## 5.5 (current)
+- Search for HITs and Qualification Types.
+- Notify workers.
 - Filter using truthy values instead of true/false.
 - Filter is on by default and it skips item of type 'bot' or item with 'skip' truthy.
+- Better error handling.
 
 ## 5.1.0
 - Updated to winston 3.x
