@@ -1,7 +1,7 @@
 {
     "name": "nodegame-mturk",
     "description": "An interactive console to handle standard operations with the Amazon Mechanical Turk Web Service.",
-    "version": "5.1.0",
+    "version": "5.6.0",
     "homepage": "http://nodegame.org",
     "author": "Stefano Balietti <futur.dorko@gmail.com>",
     "keywords": [
@@ -23,7 +23,7 @@
     "dependencies": {
         "JSUS": "*",
         "NDDB": "^1.18.0",
-        "api-mturk": "^1.1.7",
+        "nodegame-api-mturk": "^1.3.0",
         "commander": "*",
         "fs-extra": "*",
         "inquirer": "^6.0.0",
