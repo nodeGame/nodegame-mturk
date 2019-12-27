@@ -59,7 +59,7 @@
                 to play,</li>
               <li>You cannot participate from tablets or mobile
                 phones,</li>
-              <li>Your screen must support a resolution
+              <li id="screen_res_li" style="display: none">Your screen must support a resolution
                 of <strong id="screen_res">(loading info)</strong> or more.</li>
             </ol>
           </li>
@@ -245,7 +245,7 @@
 <!-- <script type="text/javascript" src="claimcode.js" charset="utf-8"></script> -->
 <script type="text/javascript" charset="utf-8">
     $(document).ready(function() {
-        var res, X, Y;
+        var res, X, Y, reqFail;
         var wid, aid, hid;
         var host;
         
@@ -308,39 +308,69 @@
                 timeout: 3000 
             });
         }
+        
+        // Copied from JSUS.viewportSize
+        function viewportSize(dim) {
+            var w, d, e, g, x, y;
+            if (dim && dim !== 'x' && dim !== 'y') {
+                throw new TypeError('viewportSize: dim must be "x","y" or ' +
+                                    'undefined. Found: ' + dim);
+            }
+            w = window;
+            d = document;
+            e = d.documentElement;
+            g = d.getElementsByTagName('body')[0];
+            x = w.innerWidth || e.clientWidth || g.clientWidth;
+            y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+            return !dim ? { x: x, y: y } : dim === 'x' ? x : y;
+        }
+
+
+        // Your variables.
+        
+        // Do not accept string.
         noAccept = '<br/><br/>' +
             '<strong>Do not accept this HIT, you will have to ' +
             'return it.</strong>';
-        
-        X = 1366, Y = 768;
-
-        // Set minimum resolution in text.
-        document.getElementById('screen_res').innerHTML = X + 'x' + Y;
-        
-        // This might fail due to iframe restrictions.
-        try {
-            res = viewportSize();
-        }
-        catch(e) {
-            res = null;
-        }
-        
-        document.getElementById('requirements').style.display = 'none';
-        
-        if (res && (res.x < X || res.y < Y)) {
-            document.getElementById('not-authorized').innerHTML = 
-                'Unfortunately, your ' +
-                'screen resolution is too low: ' + res.x + 'x' + res.y + 
-                ' (' + X + 'x' + Y + ' required).<br/></br/>If you can, ' +
-                'maximize the window, or open this page from another ' +
-                'device and try again.' + noAccept;
-            
-            return;
-        }
-        
-        document.getElementById('content').style.display = '';
-        
+        // Minimum dimensions.
+        X = 0;
+        Y = 0;
+        // Host.
         host = 'https://your.host.com';
+        
+        // Go.
+        
+        if (X || Y) {
+            document.getElementById('screen_res_li').style.display = '';
+            // Set minimum resolution in text.
+            document.getElementById('screen_res').innerHTML = X + 'x' + Y;
+        
+            // This might fail due to iframe restrictions.
+            try {
+                res = viewportSize();
+            }
+            catch(e) {
+                res = null;
+            }
+        
+            if (res && (res.x < X || res.y < Y)) {
+                document.getElementById('not-authorized').innerHTML = 
+                    'Unfortunately, your ' +
+                    'screen resolution is too low: ' + res.x + 'x' + res.y + 
+                    ' (' + X + 'x' + Y + ' required).<br/></br/>If you can, ' +
+                    'maximize the window, or open this page from another ' +
+                    'device and try again.' + noAccept;
+                
+                reqFail = true;
+            }
+        }
+
+        // Hide the requirements.
+        document.getElementById('requirements').style.display = 'none';
+        if (reqFail) return;
+
+        // Display the main HIT content.
+        document.getElementById('content').style.display = '';
         
         // Get parameters (must be on Mturk).
         if ('function' !== typeof turkGetParam) {
@@ -351,17 +381,14 @@
             document.getElementById('requirements').style.display = 'none';
             return;
         }
-        
+
+        // Until now,we are in Preview.
+
+        // If wid is defined, the Turker has accepted the HIT, if not return.
         wid = turkGetParam('workerId');
-        // If there is no worker id, the turker has not yet accepted the HIT.
-        if ('undefined' === typeof wid) {
-            //              document.getElementById('not-authorized').innerHTML =
-            //                 'Unfortunately, an error occurred in your browser while ' +
-            //                 'rendering this HIT. Try refreshing the page, and if ' +
-            //                 'the problem persists contact the Employer.' + noAccept;
-            //             document.getElementById('requirements').style.display = 'none';
-            return;
-        }
+        if ('undefined' === typeof wid) return;
+
+        // Get other values.
         aid = turkGetParam('assignmentId');
         hid = turkGetParam('hitId');
         
@@ -371,6 +398,17 @@
         //      aid = 2;
         //      hid = 1;
         
+        // Prevent empty code submissions.
+        document.getElementById('submitButton').onclick = function() {
+            var surveycode;
+            surveycode = document.getElementById('surveycode');
+            if (!surveycode.value || surveycode.value.trim() === '') {
+                alert('Warning! Empty Exit Code.');
+                return false;
+            }
+        };
+        
+        // Send data to nodeGame.
         claimId();        
     });
 </script>
