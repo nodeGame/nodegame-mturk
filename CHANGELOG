@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## 5.5 (current)
+- HIT submission is prevented when Exit Code field is empty.
 - Search for HITs and Qualification Types.
 - Notify workers.
 - Filter using truthy values instead of true/false.
