@@ -23,10 +23,10 @@
     "dependencies": {
         "JSUS": "*",
         "NDDB": "^1.18.0",
-        "nodegame-api-mturk": "^1.3.0",
         "commander": "*",
         "fs-extra": "*",
         "inquirer": "^6.0.0",
+        "nodegame-api-mturk": "^1.3.1",
         "underscore": "*",
         "vorpal": "*",
         "winston": "^3.0.0"
