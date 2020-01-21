@@ -1,6 +1,9 @@
 # CHANGELOG
 
-## 5.5 (current)
+## 5.7
+- Disconnected players do not receive bonus.
+
+## 5.6
 - HIT submission is prevented when Exit Code field is empty.
 - Search for HITs and Qualification Types.
 - Notify workers.
