@@ -86,6 +86,11 @@ module.exports =  {
     //     // but it is usually given by nodeGame to access the task.
     //     accessCode: 'access',
     //
+    //     // Flag to indicate if the worker disconnected before
+    //     // finishing the task. By default, workers marked as disconnected
+    //     // do not receive bonus even when one is set. 
+    //     disconnected: 'disconnected',
+    //
     //     // The qualification for the worker who took the task.
     //     // Can also be fetched via API.
     //     qualificationTypeId: 'QualificationTypeId',
@@ -121,9 +126,9 @@ module.exports =  {
     fieldsCaseInsensitive: true,
 
     // Callback function to filter items to load from the results file.
-    // The return value is coerced to boolean, and if FALSE  item is skipped
+    // The return value is coerced to boolean, and if FALSE the item is skipped
     // (and no check is performed) and if TRUE, item is kept.
-    // Default: if type is bot or if skip is true, item is skipped.
+    // Default: if type is 'bot' or skip is true, item is skipped.
     filter: function(item) {
          if (item.type === 'bot') return false;
          if (item.skip) return false;
