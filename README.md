@@ -41,7 +41,7 @@ Add your Amazon Web Service (AWS) Keys in the conf file:
 - **secretAccessKey**: 'YYY'
 
 If you do not have your keys yet, please read
-[here](https://aws.amazon.com/kms/).
+[here](https://aws.amazon.com/kms/) or [here](https://blog.mturk.com/tutorial-setting-up-your-aws-account-to-make-use-of-mturks-api-4e405b8fc8cb).
 
 ### Optional Configuration Settings
 
@@ -268,8 +268,8 @@ The command above returns the last qualification. You can search through the
 list of the 10 most recent Qualifications.
 
 ```bash
-ng-amt$ get QualificationTypeIdList 
-? Select a QualificationType 
+ng-amt$ get QualificationTypeIdList
+? Select a QualificationType
   1) 4/20/2019 my_qualification
   2) 11/20/2018 another_qualification
   3) 8/7/2018 what_is_this_for
@@ -277,16 +277,16 @@ ng-amt$ get QualificationTypeIdList
   5) 6/4/2018 you_are_definitely_qualified
   6) 6/3/2018 you_are_unqualifiable
 (Move up and down to reveal more choices)
-  Answer: 
+  Answer:
 ```bash
 
 If you still do not find it, you can add a search query.
 
 ```
 ng-amt$ get QualificationTypeIdList -s Finished
-? Select a QualificationType 
+? Select a QualificationType
   1) 7/21/2017 Finished_my_study
-  Answer: 
+  Answer:
 ```
 
 - **Get the Status of a running HIT**
