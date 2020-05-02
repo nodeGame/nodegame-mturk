@@ -2,12 +2,6 @@
 
 "use strict";
 
-// General.
-var fs = require('fs-extra');
-var path = require('path');
-var _ = require('underscore');
-var J = require('JSUS').JSUS;
-
 // Commander.
 /////////////
 
@@ -25,30 +19,46 @@ logger = require('./lib/core/logger')(program);
 /////////////////////////
 
 var cfg;
-cfg = require('./lib/core/config')(program);
-if (!cfg) return;
+try {
+    cfg = require('./lib/core/config')(program);
+    if (!cfg) return;
+}
+catch(e) {
+    fatal(e);
+}
+
 
 // VORPAL COMMANDS
 //////////////////
 var vorpal;
-vorpal = require('./lib/core/vorpal');
-
+try {
+    vorpal = require('./lib/core/vorpal');
+}
+catch(e) {
+    fatal(e);
+}
 
 // DEFAULT ACTION (from program)
 ////////////////////////////////
 
 var codes;
-if (program.inputCodesFile || program.resultsFile || program.game) {
-    codes = require('./lib/core/codes');
-    if (program.inputCodesFile) {
-        program.path = program.inputCodesFile;
-        codes.loadInputCodes(program);
-    }
-    if (program.resultsFile) {
-        program.path = program.resultsFile;
-        codes.loadResults(program);
+try {
+    if (program.inputCodesFile || program.resultsFile || program.game) {
+        codes = require('./lib/core/codes');
+        if (program.inputCodesFile) {
+            program.path = program.inputCodesFile;
+            codes.loadInputCodes(program);
+        }
+        if (program.resultsFile) {
+            program.path = program.resultsFile;
+            codes.loadResults(program);
+        }
     }
 }
+catch(e) {
+    fatal(e);
+}
+
 var args;
 args = {};
 if (program.getLastHITId) args.getLastHITId = true;
@@ -56,21 +66,26 @@ if (program.getQualificationTypeId) args.getQualificationTypeId = true;
 if (args.getLastHITId || program.getQualificationTypeId) program.connect = true;
 
 // Async operations needs to be completed before the first prompt.
-if (program.connect) {
-    require('./lib/core/api').connect(args, function() {
-        if (program.game) {
-            loadGame(startVorpal);
-        }
-        else {
-            startVorpal();
-        }
-    });
+try {
+    if (program.connect) {
+        require('./lib/core/api').connect(args, function() {
+            if (program.game) {
+                loadGame(startVorpal);
+            }
+            else {
+                startVorpal();
+            }
+        });
+    }
+    else if (program.game) {
+        loadGame(startVorpal);
+    }
+    else {
+        startVorpal();
+    }
 }
-else if (program.game) {
-    loadGame(startVorpal);    
-}
-else {
-    startVorpal();
+catch(e) {
+    fatal(e);
 }
 
 // Helper methods.
@@ -88,6 +103,11 @@ function loadGame(cb) {
     let indexLimit = program.rawArgs.indexOf(program.game) + 1;
     program.limit = program.rawArgs[indexLimit];
     codes.loadGame(program, cb);
+}
+
+function fatal(error) {
+    logger.error('Ooops! A fatal error occurred:');
+    console.log(error);
 }
 
 // Do we need to export it?
