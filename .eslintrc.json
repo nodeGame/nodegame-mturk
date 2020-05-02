@@ -1,11 +1,8 @@
 {
   "env": {
-    "browser": true,
     "commonjs": true,
     "es6": true,
-    "jquery": true,
     "mocha": true,
-    "mongo": true,
     "node": true
   },
   "extends": "eslint:recommended",
