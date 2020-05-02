@@ -21,10 +21,6 @@
       "error",
       4,
      { "SwitchCase": 1 }
-    ],
-    "quotes": [
-      "error",
-      "double"
     ]
   }
 }
