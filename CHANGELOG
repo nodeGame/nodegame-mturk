@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 6.0.0
+- Version bump, no changes (however createHIT branch still to be merged).
+
 ## 5.7
 - Disconnected players do not receive bonus.
 
