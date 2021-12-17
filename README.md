@@ -278,11 +278,11 @@ ng-amt$ get QualificationTypeIdList
   6) 6/3/2018 you_are_unqualifiable
 (Move up and down to reveal more choices)
   Answer: 
-```bash
+```
 
 If you still do not find it, you can add a search query.
 
-```
+```bash
 ng-amt$ get QualificationTypeIdList -s Finished
 ? Select a QualificationType 
   1) 7/21/2017 Finished_my_study
@@ -325,8 +325,7 @@ The commands looks for files saved as `bonus.csv`, `results.csv`, or
 // Require ngmt.
 var ngmt = require('nodegame-mturk')();
 // Or with a custom config file
-// var ngmt = require('nodegame-mturk')({ config: 'path/to/config.js'
-});
+// var ngmt = require('nodegame-mturk')({ config: 'path/to/config.js' });
 
 // Connect, fetch last HIT Id (async), and then assign it to a worker.
 
