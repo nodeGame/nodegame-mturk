@@ -325,8 +325,7 @@ The commands looks for files saved as `bonus.csv`, `results.csv`, or
 // Require ngmt.
 var ngmt = require('nodegame-mturk')();
 // Or with a custom config file
-// var ngmt = require('nodegame-mturk')({ config: 'path/to/config.js'
-});
+// var ngmt = require('nodegame-mturk')({ config: 'path/to/config.js' });
 
 // Connect, fetch last HIT Id (async), and then assign it to a worker.
 
