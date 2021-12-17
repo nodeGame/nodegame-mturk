@@ -41,7 +41,7 @@ Add your Amazon Web Service (AWS) Keys in the conf file:
 - **secretAccessKey**: 'YYY'
 
 If you do not have your keys yet, please read
-[here](https://aws.amazon.com/kms/).
+[here](https://aws.amazon.com/kms/) and [here](https://console.aws.amazon.com/).
 
 ### Optional Configuration Settings
 
